@@ -16,7 +16,7 @@ They're read-only: guests still add tracks on their phones.
 | --- | --- |
 | [`party-hub.html`](party-hub.html) | The built-in Party Hub, rebuilt: its layout and styles, with links to join and to download the playlist |
 | [`simple-hub.html`](simple-hub.html) | A plainer Hub: what's playing, up next and who asked, with the codes and links to them |
-| [`roon-display-hub.html`](roon-display-hub.html) | The Party Hub with Roon's own display page (Roon Display) in place of what's playing: Roon's artist pictures beside the code to join and Up next. Needs the Roon Core's address too |
+| [`roon-display-hub.html`](roon-display-hub.html) | The Party Hub with Roon's own display page (Roon Display) in place of what's playing: Roon's artist pictures beside the code to join and Up next. Needs the Roon Core's address too. The built-in Party Hub can do this itself (**Party Hub now playing** → **Roon Display**); start here to change it |
 | [`qr-codes.html`](qr-codes.html) | Just the codes, with links: to join, and the playlist's once the party ends |
 
 ## Using one
