@@ -1,0 +1,201 @@
+<!doctype html>
+<!--
+  Copyright (c) 2026 Stubaggs and contributors
+
+  Permission is hereby granted, free of charge, to any person obtaining a copy
+  of this software and associated documentation files (the "Software"), to deal
+  in the Software without restriction, including without limitation the rights
+  to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+  copies of the Software, and to permit persons to whom the Software is
+  furnished to do so, subject to the following conditions:
+
+  The above copyright notice and this permission notice shall be included in all
+  copies or substantial portions of the Software.
+
+  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+  SOFTWARE.
+-->
+<!--
+  A test bench for a Party Hub page: shows it in a frame of a common screen
+  shape (TV, monitor, cinema, ultrawide), as large as fits this window, with the
+  frame's size and shape at the bottom right. "Full" is the whole window.
+
+  Name the page with ?page=: a page in this folder, or any web address,
+  the built-in Party Hub among them. Everything else after the "?" is passed
+  on to the page. For example:
+  ratio-test.html?page=party-hub.html&hub=http://192.0.2.10:8338
+  ratio-test.html?page=http://192.0.2.10:8338/PartyHub
+  Without ?page=, it asks, with a button for the built-in Party Hub and one
+  for each page in this folder.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ratio test</title>
+<style>
+  html, body { margin: 0; height: 100%; background: #000; color: #fff; overflow: hidden;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; }
+  [hidden] { display: none !important; }
+  .stage { position: fixed; top: 0; right: 0; left: 0; display: flex; align-items: center; justify-content: center; }
+  iframe { border: 0; background: #000; display: block; }
+  .bar { position: fixed; bottom: 0; left: 0; right: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 0.25rem;
+    padding: 0.25rem; background: rgba(0, 0, 0, 0.85); font: 0.8rem/1.2 ui-monospace, monospace; }
+  .bar button { padding: 0.2rem 0.5rem; border: 1px solid #888; border-radius: 0.3rem; background: #222; color: #fff; font: inherit; cursor: pointer; }
+  .bar button.on { background: #fff; color: #000; }
+  .size { margin-inline-start: auto; padding: 0.2rem 0.5rem; }
+  .ask { position: fixed; inset: 0; display: grid; place-items: center; padding: 16px; overflow: auto; }
+  .ask form { display: grid; gap: 0.75rem; width: min(36rem, 100%); }
+  .ask input { padding: 0.6rem; font: inherit; border-radius: 8px; border: 1px solid #555; background: #111; color: #fff; }
+  .ask .pages { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+  .ask button { padding: 0.5rem 1rem; font: inherit; border: 1px solid #888; border-radius: 999px; background: #222; color: #fff; cursor: pointer; }
+  .ask .error { color: #ff8a8a; margin: 0; }
+</style>
+</head>
+<body>
+<div class="ask" id="ask" hidden>
+  <form id="ask-form">
+    <label for="hub">Party Mode's address</label>
+    <input id="hub" type="url" placeholder="http://192.0.2.10:8338">
+    <div class="pages" id="pages"><button type="button" id="built-in">Built-in Party Hub</button></div>
+    <label for="page">Or another page: a file in this folder, or a web address</label>
+    <input id="page" placeholder="my-hub.html or https://example.com/hub.html">
+    <p class="error" id="error" hidden></p>
+    <button>Test</button>
+  </form>
+</div>
+<div class="stage" id="stage" hidden><iframe id="frame" title="Page under test"></iframe></div>
+<div class="bar" id="bar" hidden><button type="button" id="change">Page…</button><span class="size" id="size"></span></div>
+<script>
+(function () {
+  'use strict';
+  const RATIOS = [
+    ['Full', null], ['4:3', [4, 3]], ['16:10', [16, 10]], ['16:9', [16, 9]], ['1.85:1', [37, 20]],
+    ['2:1', [2, 1]], ['21:9', [21, 9]], ['2.39:1', [239, 100]], ['32:9', [32, 9]]
+  ];
+  // The pages in this folder, as buttons on the form.
+  const PAGES = ['party-hub.html', 'simple-hub.html', 'roon-display-hub.html', 'qr-codes.html'];
+  const el = (id) => document.getElementById(id);
+  const params = new URLSearchParams(location.search);
+
+  /**
+   * The page's address with the other parameters added, or null. Only a file
+   * name in this folder or an http(s) address: a javascript: address in a
+   * frame would run as this page, so a crafted link could run script here.
+   */
+  function target(page) {
+    let url;
+    if (/^[\w.-]+\.html?$/i.test(page)) url = new URL(page, location.href);
+    else {
+      try { url = new URL(page); } catch (err) { return null; }
+      if (url.protocol !== 'http:' && url.protocol !== 'https:') return null;
+    }
+    for (const [key, value] of params) if (key !== 'page') url.searchParams.set(key, value);
+    return url.href;
+  }
+
+  const BAD_PAGE = 'Use a file name in this folder, or an http or https address.';
+  function ask(error) {
+    el('ask').hidden = false;
+    el('page').value = params.get('page') || '';
+    el('hub').value = params.get('hub') || '';
+    say(error);
+    (el('hub').value ? el('page') : el('hub')).focus();
+  }
+  function say(error) {
+    el('error').textContent = error || '';
+    el('error').hidden = !error;
+  }
+  function go(page) {
+    params.set('page', page);
+    const hub = el('hub').value.trim();
+    if (hub) params.set('hub', hub);
+    else params.delete('hub');
+    location.search = params.toString();
+  }
+  // Party Mode's own Hub, at the address above.
+  el('built-in').addEventListener('click', () => {
+    let hub = null;
+    try { hub = new URL('/PartyHub', el('hub').value.trim()); } catch (err) { /* no address yet */ }
+    if (hub && (hub.protocol === 'http:' || hub.protocol === 'https:')) go(hub.href);
+    else { say("Enter Party Mode's address first, such as http://192.0.2.10:8338."); el('hub').focus(); }
+  });
+  for (const name of PAGES) {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.textContent = name;
+    button.addEventListener('click', () => go(name));
+    el('pages').appendChild(button);
+  }
+  el('ask-form').addEventListener('submit', (event) => {
+    event.preventDefault();
+    const page = el('page').value.trim();
+    if (target(page)) go(page);
+    else say(BAD_PAGE);
+  });
+  el('change').addEventListener('click', () => {
+    el('stage').hidden = el('bar').hidden = true;
+    el('frame').removeAttribute('src');
+    ask('');
+  });
+
+  const src = params.get('page') ? target(params.get('page')) : null;
+  if (!src) { ask(params.get('page') ? BAD_PAGE : ''); return; }
+
+  const stage = el('stage');
+  const frame = el('frame');
+  const bar = el('bar');
+  const size = el('size');
+  stage.hidden = bar.hidden = false;
+  frame.src = src;
+  document.title = 'Ratio test: ' + params.get('page');
+  let ratio = null;
+
+  // Whole multiples of the ratio, so the frame is exactly that shape.
+  function fit() {
+    const w = window.innerWidth;
+    const h = window.innerHeight - bar.offsetHeight;
+    stage.style.bottom = bar.offsetHeight + 'px';
+    let fw = w;
+    let fh = h;
+    if (ratio) {
+      const [a, b] = ratio;
+      const k = Math.min(w / a, h / b);
+      const whole = Math.floor(k);
+      fw = (whole >= 1 ? whole : k) * a;
+      fh = (whole >= 1 ? whole : k) * b;
+    }
+    const rw = Math.round(fw);
+    const rh = Math.round(fh);
+    frame.style.width = rw + 'px';
+    frame.style.height = rh + 'px';
+    const gcd = (x, y) => (y ? gcd(y, x % y) : x);
+    const g = gcd(rw, rh) || 1;
+    const dpr = window.devicePixelRatio === 1 ? '' : ' · @' + window.devicePixelRatio + 'x';
+    size.textContent = rw + ' × ' + rh + ' · ' + (rw / rh).toFixed(2) + ':1 · ' + rw / g + ':' + rh / g + dpr;
+  }
+
+  for (const [label, value] of RATIOS) {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.textContent = label;
+    button.dataset.ratio = '';
+    button.addEventListener('click', () => {
+      ratio = value;
+      for (const other of bar.querySelectorAll('[data-ratio]')) other.classList.toggle('on', other === button);
+      fit();
+    });
+    bar.insertBefore(button, el('change'));
+  }
+  bar.querySelector('[data-ratio]').classList.add('on');
+  window.addEventListener('resize', fit);
+  fit();
+})();
+</script>
+</body>
+</html>

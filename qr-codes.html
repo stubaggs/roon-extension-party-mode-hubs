@@ -1,0 +1,189 @@
+<!doctype html>
+<!--
+  Copyright (c) 2026 Stubaggs and contributors
+
+  Permission is hereby granted, free of charge, to any person obtaining a copy
+  of this software and associated documentation files (the "Software"), to deal
+  in the Software without restriction, including without limitation the rights
+  to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+  copies of the Software, and to permit persons to whom the Software is
+  furnished to do so, subject to the following conditions:
+
+  The above copyright notice and this permission notice shall be included in all
+  copies or substantial portions of the Software.
+
+  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+  SOFTWARE.
+-->
+<!--
+  Party Mode on a screen of your own: an example of the /embed/ addresses.
+
+  Open this file in a browser (from disk is fine, or from any web server) and
+  enter the Party Hub's address, or add it to the page's own address:
+  qr-codes.html?hub=http://192.0.2.10:8338
+
+  In Firefox, open it from a web server rather than from disk: Firefox moves a
+  page from disk's images to https, which Party Mode doesn't serve.
+
+  It shows the join code while the party is on or paused, and the playlist code
+  once the party ends (if the host chose QR code for Playlist), each with a link
+  for a screen people tap (/GuestHub, /Playlist; only the link if the
+  host chose Link). Copy what you
+  need into your own dashboard; everything here is plain HTML and JavaScript.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Party Mode QR codes</title>
+<style>
+  :root { --bg: #160e24; --fg: #f4f0fa; --muted: #b3a8c4; --card: #241838; }
+  * { box-sizing: border-box; }
+  body { margin: 0; padding: 16px; background: var(--bg); color: var(--fg);
+    font: 16px/1.4 system-ui, sans-serif; }
+  main { max-width: 640px; margin: 0 auto; }
+  form { display: flex; gap: 8px; margin-bottom: 24px; }
+  input { flex: 1; min-width: 0; padding: 8px; font: inherit; border-radius: 6px; border: 0; }
+  button { padding: 8px 14px; font: inherit; border-radius: 6px; border: 0; cursor: pointer; }
+  .card { background: var(--card); border-radius: 12px; padding: 24px; text-align: center; }
+  .card img { width: min(60vw, 280px); aspect-ratio: 1; background: #fff; border-radius: 8px; }
+  .card h2 { margin: 0 0 16px; font-size: 1.4em; }
+  .card p { margin: 16px 0 0; color: var(--muted); }
+  /* The heading and the note are links for a screen people tap. */
+  .card a { color: inherit; text-decoration: none; }
+  .card a[href]:hover { text-decoration: underline; }
+  [hidden] { display: none !important; }
+  code { color: var(--muted); }
+</style>
+</head>
+<body>
+<main>
+  <form id="setup">
+    <input id="hub" type="url" placeholder="http://192.0.2.10:8338" aria-label="Party Hub address" required>
+    <button>Show</button>
+  </form>
+
+  <!-- While the party is on or paused -->
+  <section class="card" id="join" hidden>
+    <h2><a id="join-link" target="_blank" rel="noopener">Scan to join the party</a></h2>
+    <img id="join-qr" alt="QR code to join the party">
+    <p id="paused" hidden>Requests are paused for now.</p>
+  </section>
+
+  <!-- Once the party is off -->
+  <section class="card" id="ended" hidden>
+    <h2>Thanks for coming</h2>
+    <img id="playlist-qr" alt="QR code for the party's playlist" hidden>
+    <p><a id="ended-note">The party's over.</a></p>
+  </section>
+
+  <p><code id="state">Not connected</code></p>
+</main>
+
+<script>
+  const $ = (id) => document.getElementById(id);
+  const POLL_SECONDS = 5; // every few seconds is plenty; each request counts towards a per-device limit
+
+  let hub = null;   // e.g. "http://192.0.2.10:8338"
+  let last = null;  // the last state shown, so codes reload only when it changes
+  let playlist = null; // how the host offers the playlist: "qr", "link" or "off"
+  let timer = null;
+
+  // Show the join code while the party is on or paused.
+  function showJoin(party) {
+    $('ended').hidden = true;
+    $('playlist-qr').hidden = true;
+    $('playlist-qr').removeAttribute('src');
+    // A new party has a new code, and the browser mustn't reuse an old picture.
+    $('join-qr').src = hub + '/embed/join-qr.svg?t=' + Date.now();
+    // A link to the guest page too, without the page knowing its address.
+    $('join-link').href = hub + '/GuestHub';
+    $('paused').hidden = party !== 'paused';
+    $('join').hidden = false;
+  }
+
+  // Once the party is off, try the playlist code. It answers only if the host
+  // chose QR code for Playlist; otherwise it's a 404 and the image stays hidden.
+  function showEnded() {
+    $('join').hidden = true;
+    $('join-qr').removeAttribute('src');
+    const img = $('playlist-qr');
+    // Hide it until it has loaded: clearing src alone can leave an old picture showing.
+    img.hidden = true;
+    const note = $('ended-note');
+    note.removeAttribute('href');
+    img.onload = () => {
+      img.hidden = false;
+      note.textContent = 'Scan for a list of everything played tonight.';
+      note.href = hub + '/Playlist';
+    };
+    img.onerror = () => {
+      img.hidden = true;
+      // With Link chosen for Playlist there's no code, only the link.
+      if (playlist === 'link') {
+        note.textContent = 'Download the list of everything played tonight.';
+        note.href = hub + '/Playlist';
+      } else {
+        note.textContent = "The party's over.";
+      }
+    };
+    img.src = hub + '/embed/playlist-qr.svg?t=' + Date.now();
+    $('ended').hidden = false;
+  }
+
+  async function poll() {
+    try {
+      // A plain fetch: no headers of your own, so the browser needs no preflight.
+      const res = await fetch(hub + '/embed/status.json');
+      if (res.status === 429) throw new Error('too many requests; slow down');
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      const status = await res.json();
+      const party = status.party; // "on", "paused" or "off"
+      playlist = status.playlist;
+      $('state').textContent = 'Party: ' + party;
+      if (party + playlist === last) return;
+      last = party + playlist;
+      if (party === 'off') showEnded();
+      else showJoin(party);
+    } catch (err) {
+      // Party Mode restarting, or the address is wrong: keep what's shown, try again.
+      $('state').textContent = "Can't reach Party Mode at " + hub + ' (' + err.message + ')';
+    }
+  }
+
+  function start(address) {
+    // Only the scheme, host and port: the Party Hub's full link (…/PartyHub) works too.
+    try {
+      hub = new URL(address).origin;
+    } catch (err) {
+      $('state').textContent = 'Not an address: ' + address;
+      return;
+    }
+    last = null;
+    clearInterval(timer);
+    poll();
+    timer = setInterval(poll, POLL_SECONDS * 1000);
+  }
+
+  $('setup').addEventListener('submit', (event) => {
+    event.preventDefault();
+    const address = $('hub').value.trim();
+    const url = new URL(location.href);
+    url.searchParams.set('hub', address);
+    history.replaceState(null, '', url); // so a bookmark or a reload keeps it
+    start(address);
+  });
+
+  const given = new URLSearchParams(location.search).get('hub');
+  if (given) {
+    $('hub').value = given;
+    start(given);
+  }
+</script>
+</body>
+</html>

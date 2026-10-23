@@ -1,0 +1,268 @@
+<!doctype html>
+<!--
+  Copyright (c) 2026 Stubaggs and contributors
+
+  Permission is hereby granted, free of charge, to any person obtaining a copy
+  of this software and associated documentation files (the "Software"), to deal
+  in the Software without restriction, including without limitation the rights
+  to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+  copies of the Software, and to permit persons to whom the Software is
+  furnished to do so, subject to the following conditions:
+
+  The above copyright notice and this permission notice shall be included in all
+  copies or substantial portions of the Software.
+
+  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+  SOFTWARE.
+-->
+<!--
+  A Party Hub of your own: an example of Party Mode's /embed/ addresses.
+
+  Open this file in a browser (from disk is fine, or from any web server) and
+  enter the Party Hub's address, or add it to the page's own address:
+  simple-hub.html?hub=http://192.0.2.10:8338
+
+  In Firefox, open it from a web server rather than from disk: Firefox moves a
+  page from disk's images to https, which Party Mode doesn't serve.
+
+  It follows /embed/events (a live stream) and shows what's playing, up next,
+  who asked for each track, and the join code, or the playlist code once the
+  party ends, with the note under it a link for a screen people tap. Read-only: guests still add tracks on their phones. Copy what you
+  need into your own dashboard; everything here is plain HTML and JavaScript.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>My Party Hub</title>
+<style>
+  :root { --bg: #160e24; --fg: #f4f0fa; --muted: #b3a8c4; --card: #241838; --accent: #c89bff; }
+  * { box-sizing: border-box; }
+  body { margin: 0; padding: 16px; background: var(--bg); color: var(--fg);
+    font: 16px/1.4 system-ui, sans-serif; }
+  form { display: flex; gap: 8px; max-width: 640px; margin: 0 auto 16px; }
+  input { flex: 1; min-width: 0; padding: 8px; font: inherit; border-radius: 6px; border: 0; }
+  button { padding: 8px 14px; font: inherit; border-radius: 6px; border: 0; cursor: pointer; }
+  main { display: grid; gap: 24px; grid-template-columns: minmax(200px, 1fr) 2fr; max-width: 1200px; margin: 0 auto; }
+  @media (max-width: 720px) { main { grid-template-columns: 1fr; } }
+  [hidden] { display: none !important; }
+  .card { background: var(--card); border-radius: 12px; padding: 20px; }
+  .side { text-align: center; }
+  .side h1 { margin: 0 0 12px; font-size: 1.6em; }
+  .qr { width: 100%; max-width: 280px; aspect-ratio: 1; background: #fff; border-radius: 8px; }
+  .note { color: var(--muted); margin: 12px 0 0; }
+  /* The note under the code is a link for a screen people tap. */
+  .note a { color: inherit; text-decoration: none; }
+  .note a[href]:hover { text-decoration: underline; }
+  .label { text-transform: uppercase; letter-spacing: .08em; font-size: .75em; color: var(--muted); margin: 0 0 8px; }
+  .now { display: flex; gap: 20px; align-items: center; }
+  .now img { width: 160px; height: 160px; border-radius: 8px; object-fit: cover; background: #000; flex: none; }
+  .now h2 { margin: 0; font-size: 1.5em; }
+  .artist { margin: 4px 0; }
+  .credit { color: var(--accent); font-size: .9em; }
+  .bar { height: 4px; background: #3a2c52; border-radius: 2px; margin-top: 12px; }
+  .bar div { height: 100%; width: 0; background: var(--accent); border-radius: 2px; }
+  ol { list-style: none; margin: 0; padding: 0; }
+  li { display: flex; gap: 12px; align-items: center; padding: 8px 0; border-top: 1px solid #3a2c52; }
+  li img, li .blank { width: 48px; height: 48px; border-radius: 4px; object-fit: cover; background: #000; flex: none; }
+  li .meta { min-width: 0; }
+  li .title { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  li .who { color: var(--muted); font-size: .85em; }
+  code { color: var(--muted); }
+</style>
+</head>
+<body>
+<form id="setup">
+  <input id="hub" type="url" placeholder="http://192.0.2.10:8338" aria-label="Party Hub address" required>
+  <button>Show</button>
+</form>
+
+<main id="screen" hidden>
+  <section class="card side">
+    <h1 id="party-name">Party</h1>
+    <img class="qr" id="join-qr" alt="QR code to join the party" hidden>
+    <img class="qr" id="playlist-qr" alt="QR code for the party's playlist" hidden>
+    <p class="note"><a id="side-note"></a></p>
+  </section>
+
+  <div>
+    <section class="card">
+      <p class="label">Playing now</p>
+      <div class="now" id="now" hidden>
+        <img id="now-art" alt="">
+        <div>
+          <h2 id="now-title"></h2>
+          <p class="artist" id="now-artist"></p>
+          <p class="credit" id="now-credit"></p>
+        </div>
+      </div>
+      <div class="bar" id="now-bar" hidden><div id="now-progress"></div></div>
+      <p class="note" id="now-empty">Nothing playing.</p>
+    </section>
+
+    <section class="card" style="margin-top: 24px">
+      <p class="label">Up next</p>
+      <ol id="next"></ol>
+      <p class="note" id="next-empty" hidden></p>
+    </section>
+  </div>
+</main>
+
+<p><code id="state">Not connected</code></p>
+
+<script>
+  const $ = (id) => document.getElementById(id);
+  let hub = null;          // e.g. "http://192.0.2.10:8338"
+  let source = null;       // the live stream
+  let poller = null;       // polling, if the stream can't be used
+  let party = null;        // "on", "paused" or "off"
+  let playing = null;      // the playing track, for the progress bar
+
+  // Words are the page's own: /embed/ gives kinds and reasons.
+  function creditText(credit) {
+    if (!credit) return '';
+    if (credit.kind === 'radio') return 'Roon Radio';
+    if (credit.kind === 'host') return 'Requested by ' + (credit.name || 'the host');
+    return 'Requested by ' + (credit.name || 'a guest');
+  }
+  const EMPTY = {
+    add: 'Up next is empty: add a track from your phone.',
+    radio: 'Up next is empty: Roon Radio picks the next track.',
+    add_radio: 'Add a track from your phone, or Roon Radio picks the next one.',
+    none: 'Up next is empty.'
+  };
+  const cover = (art, size) => (art ? hub + art + '?size=' + size : '');
+
+  function showStatus(s) {
+    $('party-name').textContent = s.party_name || 'Party';
+    document.title = (s.party_name || 'Party') + ' Hub';
+    if (s.party !== party) {
+      party = s.party;
+      const over = party === 'off';
+      // Hide both until the right one has loaded: a cleared src can leave an old picture.
+      for (const id of ['join-qr', 'playlist-qr']) { $(id).hidden = true; $(id).removeAttribute('src'); }
+      const img = over ? $('playlist-qr') : $('join-qr');
+      img.onload = () => { img.hidden = false; };
+      img.onerror = () => { img.hidden = true; };
+      if (!over) img.src = hub + '/embed/join-qr.svg?t=' + Date.now();
+      else if (s.playlist === 'qr') img.src = hub + '/embed/playlist-qr.svg?t=' + Date.now();
+    }
+    const note = $('side-note');
+    note.textContent =
+      party === 'off' ? (s.playlist === 'qr' ? 'Scan for the playlist.' : s.playlist === 'link' ? 'Download the playlist.' : "The party's over.")
+      : party === 'paused' ? 'Requests are paused for now.'
+      : 'Scan to join and add tracks.';
+    // Links that lead to the join link or the playlist without the page knowing them.
+    // The guest page opens in a new tab, which also works when this page is framed.
+    const link = party !== 'off' ? '/GuestHub' : s.playlist === 'qr' || s.playlist === 'link' ? '/Playlist' : null;
+    if (link) note.href = hub + link; else note.removeAttribute('href');
+    if (party !== 'off') { note.target = '_blank'; note.rel = 'noopener'; } else note.removeAttribute('target');
+  }
+
+  function showNowPlaying(data) {
+    playing = data.track;
+    $('now').hidden = !playing;
+    $('now-bar').hidden = !playing || !playing.length;
+    $('now-empty').hidden = Boolean(playing);
+    if (!playing) return;
+    $('now-title').textContent = playing.title;
+    $('now-artist').textContent = playing.artist;
+    $('now-credit').textContent = creditText(playing.credit);
+    const src = cover(playing.art, 400);
+    if ($('now-art').getAttribute('src') !== src) $('now-art').src = src;
+    tick();
+  }
+
+  // The position moves on its own between updates.
+  function tick() {
+    if (!playing || !playing.length) return;
+    let at = playing.seek_position;
+    if (playing.state === 'playing') at += (Date.now() - playing.at) / 1000;
+    $('now-progress').style.width = Math.min(100, (100 * at) / playing.length) + '%';
+  }
+  setInterval(tick, 1000);
+
+  function showUpNext(data) {
+    const list = $('next');
+    list.textContent = '';
+    for (const t of data.tracks.slice(0, 8)) {
+      const li = document.createElement('li');
+      const art = document.createElement(t.art ? 'img' : 'div');
+      if (t.art) { art.src = cover(t.art, 120); art.alt = ''; } else art.className = 'blank';
+      const meta = document.createElement('div');
+      meta.className = 'meta';
+      const title = document.createElement('div');
+      title.className = 'title';
+      title.textContent = t.title + ' · ' + t.artist; // textContent: names and titles are never HTML
+      const who = document.createElement('div');
+      who.className = 'who';
+      who.textContent = creditText(t.credit);
+      meta.append(title, who);
+      li.append(art, meta);
+      list.append(li);
+    }
+    $('next-empty').hidden = data.tracks.length > 0;
+    $('next-empty').textContent = EMPTY[data.empty] || EMPTY.none;
+  }
+
+  const handlers = { status: showStatus, 'now-playing': showNowPlaying, 'up-next': showUpNext };
+
+  // The live stream; fetching every 5 seconds instead if it can't be used.
+  function follow() {
+    source = new EventSource(hub + '/embed/events');
+    for (const [event, show] of Object.entries(handlers)) {
+      source.addEventListener(event, (e) => show(JSON.parse(e.data)));
+    }
+    source.onopen = () => { $('state').textContent = 'Live from ' + hub; stopPolling(); };
+    source.onerror = () => {
+      // EventSource retries by itself; poll meanwhile so the screen stays current.
+      $('state').textContent = 'Reconnecting to ' + hub + '…';
+      startPolling();
+    };
+  }
+
+  async function pollOnce() {
+    try {
+      for (const view of Object.keys(handlers)) {
+        handlers[view](await (await fetch(hub + '/embed/' + view + '.json')).json());
+      }
+    } catch (err) {
+      $('state').textContent = "Can't reach Party Mode at " + hub;
+    }
+  }
+  function startPolling() { if (!poller) { pollOnce(); poller = setInterval(pollOnce, 5000); } }
+  function stopPolling() { clearInterval(poller); poller = null; }
+
+  function start(address) {
+    try {
+      hub = new URL(address).origin; // the Party Hub's full link (…/PartyHub) works too
+    } catch (err) {
+      $('state').textContent = 'Not an address: ' + address;
+      return;
+    }
+    if (source) source.close();
+    stopPolling();
+    party = null;
+    $('screen').hidden = false;
+    $('setup').hidden = true;
+    follow();
+  }
+
+  $('setup').addEventListener('submit', (event) => {
+    event.preventDefault();
+    const url = new URL(location.href);
+    url.searchParams.set('hub', $('hub').value.trim());
+    history.replaceState(null, '', url); // so a bookmark or a reload keeps it
+    start($('hub').value.trim());
+  });
+
+  const given = new URLSearchParams(location.search).get('hub');
+  if (given) { $('hub').value = given; start(given); }
+</script>
+</body>
+</html>
