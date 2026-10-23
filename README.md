@@ -26,6 +26,10 @@ They're read-only: guests still add tracks on their phones.
    Hub's address added: `party-hub.html?hub=http://192.0.2.10:8338`. Or open it alone and
    type the address in.
 
+Keeping a page on a web server of your own? Put the address in `HUB` at the top of its
+script (and the Roon Core's in `ROON`, for `roon-display-hub.html`), and it opens with
+nothing added; `hub=` and `roon=` after the `?` still win.
+
 A page has to be opened over `http`, not from an `https` site (GitHub Pages included):
 Party Mode speaks plain `http`, and browsers won't let an `https` page reach it. In
 Firefox, use a web server rather than opening it from disk, or the covers and codes won't
@@ -42,8 +46,10 @@ Anything else after the `?` is passed on to the page:
 - `ratio-test.html?page=party-hub.html&hub=http://192.0.2.10:8338`
 - `ratio-test.html?page=http://192.0.2.10:8338/PartyHub`
 
-Opened without `?page=`, it asks for Party Mode's address, with a button for the built-in
-Party Hub and one for each page here.
+Opened without `?page=`, it asks for Party Mode's address and the Roon Core's, with a
+button for the built-in Party Hub and one for each page here. Keeping it on a server of
+your own? Fill in `HUB` and `ROON` at the top of its script, and every page gets your
+addresses without typing; `hub=` and `roon=` after the `?` still win.
 
 ## Adding yours
 

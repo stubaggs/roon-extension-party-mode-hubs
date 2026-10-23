@@ -29,6 +29,9 @@
   Party Hub's address and the Roon Core's added:
   roon-display-hub.html?hub=http://192.0.2.10:8338&roon=http://192.0.2.20:9330
 
+  Keeping it on a server of your own? Put the addresses in HUB and ROON at
+  the top of the script below, and the page needs nothing after the "?".
+
   The Core's address is the one Roon gives for Roon Display (Settings →
   Displays), without /display/; Party Mode doesn't give it out. The first time,
   choose the zone in Roon's page, as on any display: it remembers it in this
@@ -58,59 +61,75 @@
     --font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   }
   * { box-sizing: border-box; }
+  /* No CSS newer than Chromium 79 (TVs' built-in browsers, such as LG's from 2021): no aspect-ratio on
+     the frame, no gap in a flex row, no inset or padding-inline shorthands. */
   html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%;
-    /* Laid out for 1920 × 1080; a bigger screen grows everything with it. */
-    font-size: max(100%, min(100vh / 67.5, 100vw / 120)); }
+    /* Laid out for 1920 × 1080, and the same on any shape as on a 4:3 screen of the same height: a wider one only
+       adds space. --w is 1% of the width, at most 1% of that 4:3 width. A bigger screen grows everything with it.
+       --vh is 1% of the height the page really has (the script measures it). */
+    --vh: 1vh; --w: min(1vw, 4 * var(--vh) / 3);
+    font-size: max(100%, min(100 * var(--vh) / 67.5, 100vw / 90)); }
   html, body { margin: 0; padding: 0; }
   body { background: var(--ink); color: var(--text); font-family: var(--font); line-height: 1.45;
-    -webkit-font-smoothing: antialiased; min-height: 100vh; overflow: hidden; height: 100vh; font-size: 1.0625rem; }
+    -webkit-font-smoothing: antialiased; min-height: calc(100 * var(--vh)); overflow: hidden; height: calc(100 * var(--vh)); font-size: 1.0625rem; }
   [hidden] { display: none !important; }
   .art { background: var(--edge); border-radius: 6px; object-fit: cover; flex: none; }
   .muted { color: var(--muted); }
 
-  .stage { display: grid; grid-template-columns: minmax(17.5rem, 34%) 1fr; grid-template-rows: auto minmax(0, 1fr);
-    gap: clamp(1rem, 3vh, 2.5rem) clamp(1.5rem, 4vw, 4rem); height: 100vh;
-    padding: clamp(1.5rem, 5vh, 4.5rem) clamp(1.5rem, 4vh, 3.5rem); align-items: center; }
+  /* What's playing and the queue: their 4:3 width, plus 5/12 of any width beyond that up to 16:9 and 3/4 of any beyond
+     (at most 1.6 times the height). The join code's column is no wider than the code. What's left over is shared
+     evenly, either side of the columns and between them. */
+  .stage { display: grid; grid-template-columns: minmax(17.5rem, calc(60 * var(--vh))) min(
+      77 * var(--vh) + min(max(0px, 100vw - 400 * var(--vh) / 3), 400 * var(--vh) / 9) * 5 / 12 + max(0px, 100vw - 1600 * var(--vh) / 9) * 3 / 4,
+      160 * var(--vh), 64%, calc(100% - 17.5rem - clamp(1.5rem, calc(4 * var(--w)), 4rem)));
+    justify-content: space-evenly; grid-template-rows: auto minmax(0, 1fr);
+    gap: clamp(1rem, 3 * var(--vh), 2.5rem) clamp(1.5rem, calc(4 * var(--w)), 4rem); height: calc(100 * var(--vh));
+    padding: clamp(1.5rem, 5 * var(--vh), 4.5rem) clamp(1.5rem, 4 * var(--vh), 3.5rem); align-items: center; }
   .join { grid-row: 1 / -1; align-self: stretch; display: flex; flex-direction: column; justify-content: center; text-align: center; }
-  .join h1 { margin: 0 0 1.2rem; padding-inline: 1.5rem; font-size: clamp(1.6rem, 3vw, 2.6rem); font-weight: 800; letter-spacing: -0.03em; }
-  .qr { width: min(100%, 30.5rem, 45vh); aspect-ratio: 1; background: #fff; border-radius: 18px; padding: 0.75rem; margin: 0 auto; display: block; }
-  .join-copy { margin: 1rem 0 0.2rem; font-size: clamp(1rem, 1.6vw, 1.4rem); color: var(--amber); }
+  .join h1 { margin: 0 0 1.2rem; padding-inline-start: 1.5rem; padding-inline-end: 1.5rem; font-size: clamp(1.6rem, calc(3 * var(--w)), 2.6rem); font-weight: 800; letter-spacing: -0.03em; }
+  /* Up to 60% of the screen's height, leaving room for a long party name. */
+  .qr { width: min(100%, 60 * var(--vh)); aspect-ratio: 1; background: #fff; border-radius: 18px; padding: 0.75rem; margin: 0 auto; display: block; }
+  .join-copy { margin: 1rem 0 0.2rem; font-size: clamp(1rem, calc(1.6 * var(--w)), 1.4rem); color: var(--amber); }
   .join-link { color: inherit; text-decoration: none; border-radius: 6px; }
   .join-link:hover { text-decoration: underline; }
   .download { display: inline-block; text-decoration: none; border-radius: 999px; font-weight: 650;
-    font-size: clamp(1rem, 1.4vw, 1.25rem); padding: 0.8rem 1.6rem; background: var(--amber); color: #2a1c00; }
+    font-size: clamp(1rem, calc(1.4 * var(--w)), 1.25rem); padding: 0.8rem 1.6rem; background: var(--amber); color: #2a1c00; }
 
-  .stack { min-width: 0; display: flex; flex-direction: column; justify-content: center; gap: clamp(1rem, 3vh, 2.5rem); }
-  .closed-title { margin: 0; font-size: clamp(1.6rem, 4vw, 3.4rem); font-weight: 800; letter-spacing: -0.03em; line-height: 1.05; color: var(--amber); }
-  .closed-text { margin: 0.4rem 0 1.2rem; font-size: clamp(1rem, 1.6vw, 1.4rem); }
+  .stack { min-width: 0; display: flex; flex-direction: column; justify-content: center; gap: clamp(1rem, 3 * var(--vh), 2.5rem); }
+  .closed-title { margin: 0; font-size: clamp(1.6rem, calc(4 * var(--w)), 3.4rem); font-weight: 800; letter-spacing: -0.03em; line-height: 1.05; color: var(--amber); }
+  .closed-text { margin: 0.4rem 0 1.2rem; font-size: clamp(1rem, calc(1.6 * var(--w)), 1.4rem); }
+  /* Party Off: "Requests are closed" in place of what's playing and Up next, centred. */
+  .stage.over .stack { text-align: center; }
 
-  .current { display: flex; gap: clamp(1rem, 2vw, 2rem); align-items: flex-start; min-width: 0; }
-  .current-art { width: clamp(6rem, 13vw, 12.5rem); height: clamp(6rem, 13vw, 12.5rem); border-radius: 10px;
+  .current { display: flex; align-items: flex-start; min-width: 0; }
+  .current-art { width: clamp(6rem, calc(13 * var(--w)), 12.5rem); height: clamp(6rem, calc(13 * var(--w)), 12.5rem); border-radius: 10px;
+    margin-inline-end: clamp(1rem, calc(2 * var(--w)), 2rem);
     box-shadow: 0 0 5.6rem -1.25rem var(--amber); }
-  .current-text { flex: 1 1 auto; min-width: 0; display: grid; grid-template-columns: minmax(0, 1fr) auto; column-gap: 1rem; }
+  /* The credit right after "Playing now"; the title under them, across the whole width. */
+  .current-text { flex: 1 1 auto; min-width: 0; display: grid; grid-template-columns: max-content minmax(0, 1fr); column-gap: 1rem; }
   .current-text > * { grid-column: 1 / -1; }
   .current-text > .current-label { grid-column: 1; }
-  .current-text > .current-who { grid-area: 1 / 2; justify-self: end; align-self: center; margin: 0; }
-  .current-label { margin: 0 0 0.3rem; color: var(--amber); font-size: clamp(0.8rem, 1.1vw, 1rem); }
-  .current-title { margin: 0; font-size: clamp(1.6rem, 4vw, 3.4rem); font-weight: 800; letter-spacing: -0.03em; line-height: 1.05;
+  .current-text > .current-who { grid-area: 1 / 2; justify-self: start; align-self: center; margin: 0 0 0.5rem; }
+  .current-label { margin: 0 0 0.5rem; color: var(--amber); font-size: clamp(0.9rem, calc(1.4 * var(--w)), 1.3rem); }
+  .current-title { margin: 0; font-size: clamp(1.25rem, calc(1.95 * var(--w)), 1.75rem); font-weight: 800; letter-spacing: -0.03em; line-height: 1.05;
     overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .current-artist { margin: 0.35rem 0 0; font-size: clamp(1rem, 1.8vw, 1.6rem); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .current-album { margin: 0.2rem 0 0; font-size: clamp(0.9rem, 1.5vw, 1.3rem); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .current-note { margin: 0.6rem 0 0; font-size: clamp(0.9rem, 1.4vw, 1.2rem); max-width: 40ch; }
-  .current-who { display: inline-block; margin: 0.8rem 0 0; padding: 0.1rem 0.6rem; border-radius: 999px;
-    font-size: calc(0.6 * clamp(1rem, 1.6vw, 1.5rem)); background: rgba(201, 182, 255, 0.18); color: var(--lavender); }
+  .current-artist { margin: 0.6rem 0 0; font-size: clamp(1rem, calc(1.8 * var(--w)), 1.6rem); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .current-album { margin: 0.4rem 0 0; font-size: clamp(0.9rem, calc(1.5 * var(--w)), 1.3rem); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .current-note { margin: 0.6rem 0 0; font-size: clamp(0.9rem, calc(1.4 * var(--w)), 1.2rem); max-width: 40ch; }
+  .current-who { display: inline-block; margin: 0.8rem 0 0; padding: 0.15rem 0.75rem; border-radius: 999px;
+    font-size: clamp(0.8rem, calc(1.2 * var(--w)), 1.15rem); background: rgba(201, 182, 255, 0.18); color: var(--lavender); }
 
   .upnext { grid-column: 2; align-self: stretch; min-height: 0; display: flex; flex-direction: column; }
-  .upnext-title { margin: 0 0 0.6rem; color: var(--amber); font-size: clamp(0.8rem, 1.1vw, 1rem); font-weight: 600; }
+  .upnext-title { margin: 0 0 0.6rem; color: var(--amber); font-size: clamp(0.9rem, calc(1.4 * var(--w)), 1.3rem); font-weight: 600; }
   .list { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--edge); min-width: 0; flex: 1 1 auto; min-height: 0; overflow: hidden; }
   .list .empty { display: flex; align-items: center; justify-content: center; height: 100%; border-bottom: 0; text-align: center;
-    font-size: clamp(1rem, 1.8vw, 1.6rem); }
-  .list li { display: grid; grid-template-columns: 2.2rem auto 1fr; gap: 1rem; align-items: center;
-    padding: clamp(0.4rem, 1.1vh, 0.9rem) 0; border-bottom: 1px solid rgba(58, 42, 99, 0.5); font-size: clamp(1rem, 1.6vw, 1.5rem); min-width: 0; }
+    font-size: clamp(1rem, calc(1.8 * var(--w)), 1.6rem); }
+  .list li { display: grid; grid-template-columns: 2.6rem auto 1fr; gap: 1rem; align-items: center;
+    padding: clamp(0.4rem, 1.1 * var(--vh), 0.9rem) 0; border-bottom: 1px solid rgba(58, 42, 99, 0.5); font-size: clamp(1rem, calc(1.6 * var(--w)), 1.5rem); min-width: 0; }
   /* Only whole tracks (see the script): a screen can't scroll. */
   .list li[hidden] { display: none; }
   .list .cover { width: 2.4em; height: 2.4em; }
-  .list .n { color: var(--muted); font-variant-numeric: tabular-nums; font-size: 0.75em; }
+  .list .n { color: var(--lavender); font-variant-numeric: tabular-nums; font-size: 0.9em; }
   .list > li > div { min-width: 0; }
   .list .t { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .list .a { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--muted); font-size: 0.78em; }
@@ -122,10 +141,14 @@
   .who.host { background: rgba(140, 207, 255, 0.16); color: var(--sky); }
 
   @media (min-width: 721px) {
-    .list > li > div { display: grid; grid-template-columns: minmax(0, max-content) max-content 1fr; align-items: baseline; column-gap: 0.9em; }
+    /* The credit at the row's far end, level with title and artist. */
+    .list > li > div { display: grid; grid-template-columns: minmax(0, 1fr) max-content; align-items: center; column-gap: 1.5em; }
     .list .t { grid-area: 1 / 1; }
-    .list .a { grid-area: 2 / 1 / auto / -1; width: 0; min-width: 100%; }
-    .list .who { grid-area: 1 / 2; justify-self: start; margin-top: 0; }
+    .list .a { grid-area: 2 / 1; }
+    .list .who { grid-area: 1 / 2 / span 2; justify-self: end; margin-top: 0; }
+    /* The room under the last whole track, shared above and below (see the script). */
+    .stage:not(.framed):not(.over) .stack, .stage:not(.framed):not(.over) .upnext { transform: translateY(var(--shift, 0px)); }
+    .stage.over .stack { grid-row: 1 / -1; align-self: center; }
   }
   @media (max-width: 720px) {
     body { overflow: auto; height: auto; }
@@ -136,11 +159,11 @@
     .current { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 0 1rem; align-items: center; }
     .current-text { display: contents; }
     .current-text > .current-label { grid-area: 1 / 1 / auto / -1; margin: 0 0 0.6rem; font-weight: 600; }
-    .current-art { grid-column: 1; grid-row: 2 / span 3; }
-    .current-title { grid-area: 2 / 2; }
+    .current-art { margin-inline-end: 0; grid-column: 1; grid-row: 2 / span 3; }
+    .current-text > .current-title { grid-area: 2 / 2; font-size: 1.6rem; }
     .current-artist { grid-area: 3 / 2; }
     .current-album { grid-area: 4 / 2; }
-    .current-text > .current-who { grid-area: 1 / 2; align-self: start; }
+    .current-text > .current-who { grid-area: 1 / 2; justify-self: end; align-self: start; }
     .qr { width: min(60%, 16rem); }
   }
 
@@ -151,29 +174,34 @@
   @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
 
   /* Roon's display page in place of what's playing, on the whole right-hand
-     side: the code shrinks and Up next moves under it. The script marks the
-     stage while the frame shows. */
+     side: the code gets smaller and Up next moves under it. The script marks the
+     stage while the frame shows; phones never show it. */
   .stage.framed { grid-template-columns: minmax(17.5rem, 1fr) auto; align-items: start; }
   .stage.framed .join { grid-row: 1; align-self: start; }
-  .stage.framed .qr { width: min(100%, 30.5rem, 30vh); }
+  .stage.framed .qr { width: min(100%, 30 * var(--vh)); }
   .stage.framed .stack { grid-column: 2; grid-row: 1 / -1; align-self: center; }
   .stage.framed .upnext { grid-column: 1; grid-row: 2; }
-  /* As tall as the screen leaves (less the line above it), or as wide as
-     leaves the code a usable column. */
-  .frame { display: block; width: min(62vw, 100vw - 27rem, (100vh - 0.5rem - clamp(1.5rem, 4vh, 3.5rem) - 2.6rem) * 16 / 15);
-    aspect-ratio: 16 / 15; border: 1px solid var(--edge); border-radius: 0.75rem; background: var(--raised); }
-  /* Above the frame: "Playing now", and who asked for the track, which Roon's page can't know. */
-  .frame-credit { display: flex; justify-content: space-between; align-items: center; gap: 1rem; margin: 0 0 0.6rem; }
-  .frame-label { color: var(--amber); font-size: clamp(0.8rem, 1.1vw, 1rem); font-weight: 600; }
-  .frame-credit .current-who { margin: 0; }
+  /* No numbers: with only a few tracks under the code, they're easy to count. */
+  .stage.framed .list li { grid-template-columns: auto 1fr; }
+  .stage.framed .list .n { display: none; }
+  /* 16:15, so Roon's picture is sharp (it picks a 4:3 artist picture for that shape): as
+     tall as the screen leaves, less the margins and the line above it, or as wide as
+     leaves the code a usable column. The height is worked out from the width. */
+  .frame { --frame-w: min(62vw, 100vw - 27rem, (100 * var(--vh) - 2 * clamp(1.5rem, 5 * var(--vh), 4.5rem) - 2.8rem) * 16 / 15);
+    display: block; width: var(--frame-w); height: calc(var(--frame-w) * 15 / 16);
+    border: 1px solid var(--edge); border-radius: 0.75rem; background: var(--raised); }
+  /* Above the frame: "Playing now", and at the far end who asked for the track, which Roon's page can't know. */
+  .frame-credit { display: flex; justify-content: space-between; align-items: center; margin: 0 0 0.6rem; }
+  .frame-credit .current-label, .frame-credit .current-who { margin: 0; }
+  .frame-credit .current-who { margin-inline-start: 1rem; }
 
   /* Only until the addresses are given. */
-  .setup { position: fixed; inset: 0; display: grid; place-items: center; background: var(--ink); padding: 16px; }
-  .setup form { display: flex; flex-wrap: wrap; gap: 8px; width: min(36rem, 100%); }
-  .setup label { flex: 1 1 100%; display: grid; gap: 4px; }
+  .setup { position: fixed; top: 0; right: 0; bottom: 0; left: 0; display: grid; place-items: center; background: var(--ink); padding: 16px; }
+  .setup form { display: flex; flex-wrap: wrap; width: min(36rem, 100%); }
+  .setup label { flex: 1 1 100%; display: grid; gap: 4px; margin-bottom: 8px; }
   .setup input { flex: 1; min-width: 0; padding: 0.6rem; font: inherit; border-radius: 8px; border: 1px solid var(--edge); }
   .setup button { padding: 0.6rem 1.2rem; font: inherit; font-weight: 650; border: 0; border-radius: 999px; background: var(--amber); color: #2a1c00; cursor: pointer; }
-  .offline { position: fixed; bottom: 0.5rem; inset-inline-start: 0.75rem; font-size: 0.8rem; color: var(--muted); }
+  .offline { position: fixed; bottom: 0.5rem; left: 0.75rem; font-size: 0.8rem; color: var(--muted); }
 </style>
 </head>
 <body>
@@ -205,7 +233,7 @@
       <p class="closed-text muted">Thanks for all the tracks.</p>
     </div>
     <div id="frame-slot" hidden>
-      <p class="frame-credit"><span class="frame-label" id="frame-label">Playing now</span><span class="current-who" id="frame-who" hidden></span></p>
+      <p class="frame-credit"><span class="current-label frame-label" id="frame-label">Playing now</span><span class="current-who" id="frame-who" hidden></span></p>
       <div id="frame-box"></div>
       <p class="current-note muted" id="frame-note" hidden>Waiting for the host to start the queue.</p>
     </div>
@@ -232,9 +260,23 @@
 <script>
 (function () {
   'use strict';
+  // Your addresses, so the page needs nothing after the "?": Party Mode's
+  // (as for the built-in Party Hub, without /PartyHub) and the Roon Core's
+  // (as for Roon Display, without /display/). Fill them in when you keep
+  // this page on a server of your own; hub= and roon= after the "?" still win.
+  const HUB = '';   // such as 'http://192.0.2.10:8338'
+  const ROON = '';  // such as 'http://192.0.2.20:9330'
   const el = (id) => document.getElementById(id);
   let hub = null; // "http://192.0.2.10:8338"
   let display = null; // Roon's display page: "http://192.0.2.20:9330/display/"
+
+  // 1% of the height the page really has, for --vh: an iPad's Safari counts
+  // its tab and address bars in 100vh, which cut the page off.
+  function measureHeight() {
+    document.documentElement.style.setProperty('--vh', window.innerHeight / 100 + 'px');
+  }
+  measureHeight();
+  window.addEventListener('resize', measureHeight);
 
   // ------------------------------------------------------------ the words
   // The built-in Hub's English. /embed/ gives kinds and reasons; the page words them.
@@ -325,14 +367,16 @@
     el('closed').hidden = !over;
     el('frame-slot').hidden = !framed;
     el('current').hidden = over || framed;
+    document.querySelector('.upnext').hidden = over;
+    document.querySelector('.stage').classList.toggle('over', over);
     document.querySelector('.stage').classList.toggle('framed', framed);
     alignArt();
   }
   wide.addEventListener('change', arrange);
 
   // ---------------------------------------------------------- playing now
-  // The cover's top level with the middle of the "Playing now" line, its bottom
-  // with the middle of the album line (as the built-in Hub does).
+  // The cover's top level with the top of the "Playing now" line, its bottom
+  // with the bottom of the album line (as the built-in Hub does).
   function alignArt() {
     const image = el('current-art');
     image.style.width = image.style.height = image.style.marginTop = '';
@@ -341,9 +385,8 @@
     const added = album.hidden;
     if (added) { album.textContent = ' '; album.hidden = false; }
     const top = document.querySelector('.current-text').getBoundingClientRect().top;
-    const middle = (line) => { const b = line.getBoundingClientRect(); return (b.top + b.bottom) / 2 - top; };
-    const from = middle(el('current-label'));
-    const size = middle(album) - from;
+    const from = el('current-label').getBoundingClientRect().top - top;
+    const size = album.getBoundingClientRect().bottom - top - from;
     if (added) { album.textContent = ''; album.hidden = true; }
     image.style.marginTop = from + 'px';
     image.style.width = image.style.height = size + 'px';
@@ -418,16 +461,35 @@
 
   // Up next shows as many whole tracks as fit, never part of one; a phone
   // scrolls the page instead, and shows them all.
+  // The room under the last whole one is shared above and below the
+  // right-hand side (--shift), so it sits in the middle, as the code does.
   function fitRows() {
     const rows = [...el('list').children];
+    const stage = document.querySelector('.stage');
     for (const row of rows) row.hidden = false;
+    stage.style.setProperty('--shift', '0px');
     if (!wide.matches) return;
     const bottom = el('list').getBoundingClientRect().bottom;
     for (const row of rows) row.hidden = row.getBoundingClientRect().bottom > bottom + 0.5;
+    const shown = rows.filter((row) => !row.hidden);
+    if (shown.length < rows.length && shown.length) {
+      const left = bottom - shown[shown.length - 1].getBoundingClientRect().bottom;
+      stage.style.setProperty('--shift', Math.floor(left / 2) + 'px');
+    }
   }
   // Again whenever the list's room changes: the window, the code above it loading.
   if ('ResizeObserver' in window) new ResizeObserver(fitRows).observe(el('list'));
   else window.addEventListener('resize', fitRows);
+
+  // And once the page has loaded: an iPad's Safari can report its height
+  // before its bars settle, leaving the right-hand side too high.
+  function relayout() {
+    measureHeight();
+    alignArt();
+    fitRows();
+  }
+  window.addEventListener('load', () => { relayout(); setTimeout(relayout, 500); });
+  window.addEventListener('pageshow', relayout);
 
   // ------------------------------------------------- keeping up to date
   const views = { status: showStatus, 'now-playing': showNowPlaying, 'up-next': showUpNext };
@@ -471,8 +533,8 @@
     start(el('hub').value.trim(), el('roon').value.trim());
   });
   const params = new URLSearchParams(location.search);
-  el('hub').value = params.get('hub') || '';
-  el('roon').value = params.get('roon') || '';
+  el('hub').value = params.get('hub') || HUB;
+  el('roon').value = params.get('roon') || ROON;
   if (!start(el('hub').value, el('roon').value)) el('setup').hidden = false;
 })();
 

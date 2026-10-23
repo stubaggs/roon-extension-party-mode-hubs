@@ -27,6 +27,9 @@
   enter the Party Hub's address, or add it to the page's own address:
   qr-codes.html?hub=http://192.0.2.10:8338
 
+  Keeping it on a server of your own? Put the address in HUB at the top of
+  the script below, and the page needs nothing after the "?".
+
   In Firefox, open it from a web server rather than from disk: Firefox moves a
   page from disk's images to https, which Party Mode doesn't serve.
 
@@ -47,9 +50,10 @@
   body { margin: 0; padding: 16px; background: var(--bg); color: var(--fg);
     font: 16px/1.4 system-ui, sans-serif; }
   main { max-width: 640px; margin: 0 auto; }
-  form { display: flex; gap: 8px; margin-bottom: 24px; }
+  /* A margin, not gap: older TV browsers (Chromium 79) have no gap in a flex row. */
+  form { display: flex; margin-bottom: 24px; }
   input { flex: 1; min-width: 0; padding: 8px; font: inherit; border-radius: 6px; border: 0; }
-  button { padding: 8px 14px; font: inherit; border-radius: 6px; border: 0; cursor: pointer; }
+  button { margin-left: 8px; padding: 8px 14px; font: inherit; border-radius: 6px; border: 0; cursor: pointer; }
   .card { background: var(--card); border-radius: 12px; padding: 24px; text-align: center; }
   .card img { width: min(60vw, 280px); aspect-ratio: 1; background: #fff; border-radius: 8px; }
   .card h2 { margin: 0 0 16px; font-size: 1.4em; }
@@ -86,6 +90,10 @@
 </main>
 
 <script>
+  // Your Party Mode's address (as for the built-in Party Hub, without
+  // /PartyHub), so the page needs nothing after the "?": fill it in when you
+  // keep this page on a server of your own. hub= after the "?" still wins.
+  const HUB = ''; // such as 'http://192.0.2.10:8338'
   const $ = (id) => document.getElementById(id);
   const POLL_SECONDS = 5; // every few seconds is plenty; each request counts towards a per-device limit
 
@@ -179,7 +187,7 @@
     start(address);
   });
 
-  const given = new URLSearchParams(location.search).get('hub');
+  const given = new URLSearchParams(location.search).get('hub') || HUB;
   if (given) {
     $('hub').value = given;
     start(given);

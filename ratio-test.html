@@ -32,6 +32,10 @@
   ratio-test.html?page=http://192.0.2.10:8338/PartyHub
   Without ?page=, it asks, with a button for the built-in Party Hub and one
   for each page in this folder.
+
+  Keeping this page on a server of your own? Put your addresses in HUB and
+  ROON at the top of the script below, and every page you test gets them
+  without typing (hub= and roon= after the "?" still win).
 -->
 <html lang="en">
 <head>
@@ -44,15 +48,18 @@
   [hidden] { display: none !important; }
   .stage { position: fixed; top: 0; right: 0; left: 0; display: flex; align-items: center; justify-content: center; }
   iframe { border: 0; background: #000; display: block; }
-  .bar { position: fixed; bottom: 0; left: 0; right: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 0.25rem;
-    padding: 0.25rem; background: rgba(0, 0, 0, 0.85); font: 0.8rem/1.2 ui-monospace, monospace; }
+  .bar { position: fixed; bottom: 0; left: 0; right: 0; display: flex; flex-wrap: wrap; align-items: center;
+    padding: 0.125rem; background: rgba(0, 0, 0, 0.85); font: 0.8rem/1.2 ui-monospace, monospace; }
+  /* Margins and top/right/bottom/left, not gap and inset: older TV browsers (Chromium 79) have neither. */
+  .bar > * { margin: 0.125rem; }
   .bar button { padding: 0.2rem 0.5rem; border: 1px solid #888; border-radius: 0.3rem; background: #222; color: #fff; font: inherit; cursor: pointer; }
   .bar button.on { background: #fff; color: #000; }
   .size { margin-inline-start: auto; padding: 0.2rem 0.5rem; }
-  .ask { position: fixed; inset: 0; display: grid; place-items: center; padding: 16px; overflow: auto; }
+  .ask { position: fixed; top: 0; right: 0; bottom: 0; left: 0; display: grid; place-items: center; padding: 16px; overflow: auto; }
   .ask form { display: grid; gap: 0.75rem; width: min(36rem, 100%); }
   .ask input { padding: 0.6rem; font: inherit; border-radius: 8px; border: 1px solid #555; background: #111; color: #fff; }
-  .ask .pages { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+  .ask .pages { display: flex; flex-wrap: wrap; margin: 0 -0.25rem; }
+  .ask .pages button { margin: 0.25rem; }
   .ask button { padding: 0.5rem 1rem; font: inherit; border: 1px solid #888; border-radius: 999px; background: #222; color: #fff; cursor: pointer; }
   .ask .error { color: #ff8a8a; margin: 0; }
 </style>
@@ -62,6 +69,8 @@
   <form id="ask-form">
     <label for="hub">Party Mode's address</label>
     <input id="hub" type="url" placeholder="http://192.0.2.10:8338">
+    <label for="roon">The Roon Core's address (for roon-display-hub.html)</label>
+    <input id="roon" type="url" placeholder="http://192.0.2.20:9330">
     <div class="pages" id="pages"><button type="button" id="built-in">Built-in Party Hub</button></div>
     <label for="page">Or another page: a file in this folder, or a web address</label>
     <input id="page" placeholder="my-hub.html or https://example.com/hub.html">
@@ -74,6 +83,12 @@
 <script>
 (function () {
   'use strict';
+  // Your addresses, so you don't have to type them each time: Party Mode's
+  // (as for the built-in Party Hub, without /PartyHub) and the Roon Core's
+  // web address. Leave one '' to type it on the form or after the "?".
+  const HUB = '';   // such as 'http://192.0.2.10:8338'
+  const ROON = '';  // such as 'http://192.0.2.20:9330'
+
   const RATIOS = [
     ['Full', null], ['4:3', [4, 3]], ['16:10', [16, 10]], ['16:9', [16, 9]], ['1.85:1', [37, 20]],
     ['2:1', [2, 1]], ['21:9', [21, 9]], ['2.39:1', [239, 100]], ['32:9', [32, 9]]
@@ -82,6 +97,8 @@
   const PAGES = ['party-hub.html', 'simple-hub.html', 'roon-display-hub.html', 'qr-codes.html'];
   const el = (id) => document.getElementById(id);
   const params = new URLSearchParams(location.search);
+  if (HUB && !params.has('hub')) params.set('hub', HUB);
+  if (ROON && !params.has('roon')) params.set('roon', ROON);
 
   /**
    * The page's address with the other parameters added, or null. Only a file
@@ -104,6 +121,7 @@
     el('ask').hidden = false;
     el('page').value = params.get('page') || '';
     el('hub').value = params.get('hub') || '';
+    el('roon').value = params.get('roon') || '';
     say(error);
     (el('hub').value ? el('page') : el('hub')).focus();
   }
@@ -113,9 +131,11 @@
   }
   function go(page) {
     params.set('page', page);
-    const hub = el('hub').value.trim();
-    if (hub) params.set('hub', hub);
-    else params.delete('hub');
+    for (const key of ['hub', 'roon']) {
+      const value = el(key).value.trim();
+      if (value) params.set(key, value);
+      else params.delete(key);
+    }
     location.search = params.toString();
   }
   // Party Mode's own Hub, at the address above.

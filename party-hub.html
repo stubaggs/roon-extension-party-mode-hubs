@@ -28,6 +28,9 @@
   Party Hub's address added:
   party-hub.html?hub=http://192.0.2.10:8338
 
+  Keeping it on a server of your own? Put the address in HUB at the top of
+  the script below, and the page needs nothing after the "?".
+
   In Firefox, open it from a web server rather than from disk: Firefox moves a
   page from disk's images to https, which Party Mode doesn't serve.
 
@@ -46,14 +49,17 @@
     --font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   }
   * { box-sizing: border-box; }
+  /* No CSS newer than Chromium 79 (TVs' built-in browsers, such as LG's from 2021): no gap in a flex
+     row, no inset or padding-inline shorthands. */
   html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%;
     /* Laid out for 1920 × 1080, and the same on any shape as on a 4:3 screen of the same height: a wider one only
-       adds space. --w is 1% of the width, at most 1% of that 4:3 width. A bigger screen grows everything with it. */
-    --w: min(1vw, 4vh / 3);
-    font-size: max(100%, min(100vh / 67.5, 100vw / 90)); }
+       adds space. --w is 1% of the width, at most 1% of that 4:3 width. A bigger screen grows everything with it.
+       --vh is 1% of the height the page really has (the script measures it). */
+    --vh: 1vh; --w: min(1vw, 4 * var(--vh) / 3);
+    font-size: max(100%, min(100 * var(--vh) / 67.5, 100vw / 90)); }
   html, body { margin: 0; padding: 0; }
   body { background: var(--ink); color: var(--text); font-family: var(--font); line-height: 1.45;
-    -webkit-font-smoothing: antialiased; min-height: 100vh; overflow: hidden; height: 100vh; font-size: 1.0625rem; }
+    -webkit-font-smoothing: antialiased; min-height: calc(100 * var(--vh)); overflow: hidden; height: calc(100 * var(--vh)); font-size: 1.0625rem; }
   [hidden] { display: none !important; }
   .art { background: var(--edge); border-radius: 6px; object-fit: cover; flex: none; }
   .muted { color: var(--muted); }
@@ -61,28 +67,31 @@
   /* What's playing and the queue: their 4:3 width, plus 5/12 of any width beyond that up to 16:9 and 3/4 of any beyond
      (at most 1.6 times the height). The join code's column is no wider than the code. What's left over is shared
      evenly, either side of the columns and between them. */
-  .stage { display: grid; grid-template-columns: minmax(17.5rem, 60vh) min(
-      77vh + min(max(0px, 100vw - 400vh / 3), 400vh / 9) * 5 / 12 + max(0px, 100vw - 1600vh / 9) * 3 / 4,
-      160vh, 64%, calc(100% - 17.5rem - clamp(1.5rem, calc(4 * var(--w)), 4rem)));
+  .stage { display: grid; grid-template-columns: minmax(17.5rem, calc(60 * var(--vh))) min(
+      77 * var(--vh) + min(max(0px, 100vw - 400 * var(--vh) / 3), 400 * var(--vh) / 9) * 5 / 12 + max(0px, 100vw - 1600 * var(--vh) / 9) * 3 / 4,
+      160 * var(--vh), 64%, calc(100% - 17.5rem - clamp(1.5rem, calc(4 * var(--w)), 4rem)));
     justify-content: space-evenly; grid-template-rows: auto minmax(0, 1fr);
-    gap: clamp(1rem, 3vh, 2.5rem) clamp(1.5rem, calc(4 * var(--w)), 4rem); height: 100vh;
-    padding: clamp(1.5rem, 5vh, 4.5rem) clamp(1.5rem, 4vh, 3.5rem); align-items: center; }
+    gap: clamp(1rem, 3 * var(--vh), 2.5rem) clamp(1.5rem, calc(4 * var(--w)), 4rem); height: calc(100 * var(--vh));
+    padding: clamp(1.5rem, 5 * var(--vh), 4.5rem) clamp(1.5rem, 4 * var(--vh), 3.5rem); align-items: center; }
   .join { grid-row: 1 / -1; align-self: stretch; display: flex; flex-direction: column; justify-content: center; text-align: center; }
-  .join h1 { margin: 0 0 1.2rem; padding-inline: 1.5rem; font-size: clamp(1.6rem, calc(3 * var(--w)), 2.6rem); font-weight: 800; letter-spacing: -0.03em; }
+  .join h1 { margin: 0 0 1.2rem; padding-inline-start: 1.5rem; padding-inline-end: 1.5rem; font-size: clamp(1.6rem, calc(3 * var(--w)), 2.6rem); font-weight: 800; letter-spacing: -0.03em; }
   /* Up to 60% of the screen's height, leaving room for a long party name. */
-  .qr { width: min(100%, 60vh); aspect-ratio: 1; background: #fff; border-radius: 18px; padding: 0.75rem; margin: 0 auto; display: block; }
+  .qr { width: min(100%, 60 * var(--vh)); aspect-ratio: 1; background: #fff; border-radius: 18px; padding: 0.75rem; margin: 0 auto; display: block; }
   .join-copy { margin: 1rem 0 0.2rem; font-size: clamp(1rem, calc(1.6 * var(--w)), 1.4rem); color: var(--amber); }
   .join-link { color: inherit; text-decoration: none; border-radius: 6px; }
   .join-link:hover { text-decoration: underline; }
   .download { display: inline-block; text-decoration: none; border-radius: 999px; font-weight: 650;
     font-size: clamp(1rem, calc(1.4 * var(--w)), 1.25rem); padding: 0.8rem 1.6rem; background: var(--amber); color: #2a1c00; }
 
-  .stack { min-width: 0; display: flex; flex-direction: column; justify-content: center; gap: clamp(1rem, 3vh, 2.5rem); }
+  .stack { min-width: 0; display: flex; flex-direction: column; justify-content: center; gap: clamp(1rem, 3 * var(--vh), 2.5rem); }
   .closed-title { margin: 0; font-size: clamp(1.6rem, calc(4 * var(--w)), 3.4rem); font-weight: 800; letter-spacing: -0.03em; line-height: 1.05; color: var(--amber); }
   .closed-text { margin: 0.4rem 0 1.2rem; font-size: clamp(1rem, calc(1.6 * var(--w)), 1.4rem); }
+  /* Party Off: "Requests are closed" in place of what's playing and Up next, centred. */
+  .stage.over .stack { text-align: center; }
 
-  .current { display: flex; gap: clamp(1rem, calc(2 * var(--w)), 2rem); align-items: flex-start; min-width: 0; }
+  .current { display: flex; align-items: flex-start; min-width: 0; }
   .current-art { width: clamp(6rem, calc(13 * var(--w)), 12.5rem); height: clamp(6rem, calc(13 * var(--w)), 12.5rem); border-radius: 10px;
+    margin-inline-end: clamp(1rem, calc(2 * var(--w)), 2rem);
     box-shadow: 0 0 5.6rem -1.25rem var(--amber); }
   /* The credit right after "Playing now"; the title under them, across the whole width. */
   .current-text { flex: 1 1 auto; min-width: 0; display: grid; grid-template-columns: max-content minmax(0, 1fr); column-gap: 1rem; }
@@ -104,7 +113,7 @@
   .list .empty { display: flex; align-items: center; justify-content: center; height: 100%; border-bottom: 0; text-align: center;
     font-size: clamp(1rem, calc(1.8 * var(--w)), 1.6rem); }
   .list li { display: grid; grid-template-columns: 2.6rem auto 1fr; gap: 1rem; align-items: center;
-    padding: clamp(0.4rem, 1.1vh, 0.9rem) 0; border-bottom: 1px solid rgba(58, 42, 99, 0.5); font-size: clamp(1rem, calc(1.6 * var(--w)), 1.5rem); min-width: 0; }
+    padding: clamp(0.4rem, 1.1 * var(--vh), 0.9rem) 0; border-bottom: 1px solid rgba(58, 42, 99, 0.5); font-size: clamp(1rem, calc(1.6 * var(--w)), 1.5rem); min-width: 0; }
   /* Only whole tracks (see the script): a screen can't scroll. */
   .list li[hidden] { display: none; }
   .list .cover { width: 2.4em; height: 2.4em; }
@@ -125,6 +134,9 @@
     .list .t { grid-area: 1 / 1; }
     .list .a { grid-area: 2 / 1; }
     .list .who { grid-area: 1 / 2 / span 2; justify-self: end; margin-top: 0; }
+    /* The room under the last whole track, shared above and below (see the script). */
+    .stage:not(.over) .stack, .stage:not(.over) .upnext { transform: translateY(var(--shift, 0px)); }
+    .stage.over .stack { grid-row: 1 / -1; align-self: center; }
   }
   @media (max-width: 720px) {
     body { overflow: auto; height: auto; }
@@ -135,7 +147,7 @@
     .current { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 0 1rem; align-items: center; }
     .current-text { display: contents; }
     .current-text > .current-label { grid-area: 1 / 1 / auto / -1; margin: 0 0 0.6rem; font-weight: 600; }
-    .current-art { grid-column: 1; grid-row: 2 / span 3; }
+    .current-art { margin-inline-end: 0; grid-column: 1; grid-row: 2 / span 3; }
     .current-text > .current-title { grid-area: 2 / 2; font-size: 1.6rem; }
     .current-artist { grid-area: 3 / 2; }
     .current-album { grid-area: 4 / 2; }
@@ -150,11 +162,11 @@
   @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
 
   /* Only until an address is given. */
-  .setup { position: fixed; inset: 0; display: grid; place-items: center; background: var(--ink); padding: 16px; }
-  .setup form { display: flex; gap: 8px; width: min(36rem, 100%); }
+  .setup { position: fixed; top: 0; right: 0; bottom: 0; left: 0; display: grid; place-items: center; background: var(--ink); padding: 16px; }
+  .setup form { display: flex; width: min(36rem, 100%); }
   .setup input { flex: 1; min-width: 0; padding: 0.6rem; font: inherit; border-radius: 8px; border: 1px solid var(--edge); }
-  .setup button { padding: 0.6rem 1.2rem; font: inherit; font-weight: 650; border: 0; border-radius: 999px; background: var(--amber); color: #2a1c00; cursor: pointer; }
-  .offline { position: fixed; bottom: 0.5rem; inset-inline-start: 0.75rem; font-size: 0.8rem; color: var(--muted); }
+  .setup button { margin-inline-start: 8px; padding: 0.6rem 1.2rem; font: inherit; font-weight: 650; border: 0; border-radius: 999px; background: var(--amber); color: #2a1c00; cursor: pointer; }
+  .offline { position: fixed; bottom: 0.5rem; left: 0.75rem; font-size: 0.8rem; color: var(--muted); }
 </style>
 </head>
 <body>
@@ -207,8 +219,20 @@
 <script>
 (function () {
   'use strict';
+  // Your Party Mode's address (as for the built-in Party Hub, without
+  // /PartyHub), so the page needs nothing after the "?": fill it in when you
+  // keep this page on a server of your own. hub= after the "?" still wins.
+  const HUB = ''; // such as 'http://192.0.2.10:8338'
   const el = (id) => document.getElementById(id);
   let hub = null; // "http://192.0.2.10:8338"
+
+  // 1% of the height the page really has, for --vh: an iPad's Safari counts
+  // its tab and address bars in 100vh, which cut the page off.
+  function measureHeight() {
+    document.documentElement.style.setProperty('--vh', window.innerHeight / 100 + 'px');
+  }
+  measureHeight();
+  window.addEventListener('resize', measureHeight);
 
   // ------------------------------------------------------------ the words
   // The built-in Hub's English. /embed/ gives kinds and reasons; the page words them.
@@ -243,6 +267,8 @@
     fitQr();
     el('closed').hidden = !over;
     el('current').hidden = over;
+    document.querySelector('.upnext').hidden = over;
+    document.querySelector('.stage').classList.toggle('over', over);
     el('join-copy').textContent = s.party === 'paused' ? 'Requests are paused for a moment.' : 'Scan to add a track';
     // With a link chosen, a button in the code's place.
     el('playlist-link-offer').hidden = !(over && s.playlist === 'link');
@@ -346,12 +372,21 @@
 
   // Up next shows as many whole tracks as fit, never part of one; a phone
   // scrolls the page instead, and shows them all.
+  // The room under the last whole one is shared above and below the
+  // right-hand side (--shift), so it sits in the middle, as the code does.
   function fitRows() {
     const rows = [...el('list').children];
+    const stage = document.querySelector('.stage');
     for (const row of rows) row.hidden = false;
+    stage.style.setProperty('--shift', '0px');
     if (!wide.matches) return;
     const bottom = el('list').getBoundingClientRect().bottom;
     for (const row of rows) row.hidden = row.getBoundingClientRect().bottom > bottom + 0.5;
+    const shown = rows.filter((row) => !row.hidden);
+    if (shown.length < rows.length && shown.length) {
+      const left = bottom - shown[shown.length - 1].getBoundingClientRect().bottom;
+      stage.style.setProperty('--shift', Math.floor(left / 2) + 'px');
+    }
   }
   // Again whenever the list's room changes: the window, the code above it loading.
   if ('ResizeObserver' in window) new ResizeObserver(fitRows).observe(el('list'));
@@ -378,6 +413,17 @@
   } else window.addEventListener('resize', fitQr);
   el('qr').addEventListener('load', fitQr);
   el('playlist-qr').addEventListener('load', fitQr);
+
+  // And once the page has loaded: an iPad's Safari can report its height
+  // before its bars settle, leaving the right-hand side too high.
+  function relayout() {
+    measureHeight();
+    alignArt();
+    fitRows();
+    fitQr();
+  }
+  window.addEventListener('load', () => { relayout(); setTimeout(relayout, 500); });
+  window.addEventListener('pageshow', relayout);
 
   // ------------------------------------------------- keeping up to date
   const views = { status: showStatus, 'now-playing': showNowPlaying, 'up-next': showUpNext };
@@ -415,7 +461,8 @@
     history.replaceState(null, '', url);
     start(el('hub').value.trim());
   });
-  const given = new URLSearchParams(location.search).get('hub');
+  const given = new URLSearchParams(location.search).get('hub') || HUB;
+  if (given) el('hub').value = given;
   if (!given || !start(given)) el('setup').hidden = false;
 })();
 
