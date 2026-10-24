@@ -1,0 +1,383 @@
+<!doctype html>
+<!--
+  Copyright (c) 2026 Stubaggs and contributors
+
+  Permission is hereby granted, free of charge, to any person obtaining a copy
+  of this software and associated documentation files (the "Software"), to deal
+  in the Software without restriction, including without limitation the rights
+  to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+  copies of the Software, and to permit persons to whom the Software is
+  furnished to do so, subject to the following conditions:
+
+  The above copyright notice and this permission notice shall be included in all
+  copies or substantial portions of the Software.
+
+  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+  SOFTWARE.
+-->
+<!--
+  The basic Party Hub, rebuilt from Party Mode's /embed/ addresses: the same
+  plain 16:9 page Party Mode shows at /PartyHub/Basic, for TV browsers years
+  behind, in English only. A starting point for a Party Hub of your own that
+  has to run anywhere.
+
+  Open this file in a browser (from any web server, or from disk) with your
+  Party Mode address added:
+  basic-hub.html?hub=http://192.0.2.10:8338
+
+  Keeping it on a server of your own? Put your Party Mode address in HUB, in
+  "Your addresses" just below, and the page needs nothing after the "?".
+
+  Plain ES5 and CSS, with nothing newer than TV browsers from about 2016 know
+  (checked back to Chrome 53 and Firefox 47): XMLHttpRequest, and live updates
+  where the browser has EventSource (else every 10 seconds). Everything sits on
+  one 1920 by 1080 stage (120 by 67.5 rem), scaled to the window by setting the
+  root font size, so text is drawn at its size rather than stretched.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<script>
+  // ---------------------------------------------- Your addresses: fill in
+  // Your Party Mode address: where your Party Hub is, without /PartyHub.
+  // Filled in, this page opens with nothing added to its own address; left
+  // '', it asks for it. ?hub= in this page's address always wins.
+  var HUB = ''; // such as 'http://192.0.2.10:8338'
+</script>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Party Hub</title>
+<style>
+  /* From Party Mode's basic.css: fixed positions on the stage, no custom
+     properties, flex gap, clamp() or logical properties. */
+  * { -webkit-box-sizing: border-box; box-sizing: border-box; }
+  [hidden] { display: none !important; }
+  html, body { margin: 0; padding: 0; height: 100%; overflow: hidden; background: #170f2b; }
+  html { font-size: 16px; -webkit-text-size-adjust: 100%; }
+  body { color: #f0eaff; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; line-height: 1.25; -webkit-font-smoothing: antialiased; }
+  h1, h2, p, ol { margin: 0; padding: 0; font-weight: inherit; }
+  .stage { position: absolute; left: 0; top: 0; width: 120rem; height: 67.5rem; overflow: hidden; background: #170f2b; }
+  .muted { color: #a79bd0; }
+  /* One line, cut with an ellipsis when long. */
+  .line, .list .t, .list .a { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+  .art { display: block; background: #3a2a63; border-radius: 0.5rem; }
+
+  /* The code to join, on the left. */
+  .join { position: absolute; left: 4rem; top: 3.5rem; width: 40rem; height: 60.5rem; text-align: center; }
+  .party-name { height: 8.4rem; overflow: hidden; font-size: 3.4rem; font-weight: 800; line-height: 1.2; word-wrap: break-word; }
+  .qr { display: block; width: 40rem; height: 40rem; margin-top: 2.5rem; padding: 1.6rem; background: #fff; border-radius: 1.4rem; }
+  .join-copy { margin-top: 2rem; color: #ffc24b; font-size: 2.6rem; font-weight: 700; }
+
+  /* What's playing, top right. */
+  .current { position: absolute; left: 50rem; top: 3.5rem; width: 66rem; height: 20rem; }
+  .current-art { position: absolute; left: 0; top: 0; width: 20rem; height: 20rem; }
+  .current-text { position: absolute; left: 23rem; right: 0; top: 0.4rem; }
+  .label { color: #ffc24b; font-size: 1.7rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; }
+  .current-title { margin-top: 0.6rem; font-size: 3.6rem; font-weight: 800; }
+  .current-artist { margin-top: 0.3rem; font-size: 2.5rem; }
+  .current-album { margin-top: 0.2rem; font-size: 2rem; }
+  .who, .note { margin-top: 0.8rem; font-size: 2rem; }
+  /* Lavender for a guest's track, amber for Play next and the host's, mint for Roon Radio. */
+  .who { color: #c9b6ff; font-weight: 600; }
+  .who.radio { color: #7be0c0; }
+  .who.next, .who.host { color: #ffc24b; }
+
+  /* Up next, below it: six rows, and how many are queued when there are more. */
+  .upnext { position: absolute; left: 50rem; top: 27rem; width: 66rem; height: 37rem; overflow: hidden; }
+  .upnext-title { position: relative; }
+  .upnext-count { position: absolute; right: 0; top: 0; color: #a79bd0; font-weight: 400; letter-spacing: 0; text-transform: none; }
+  .list { margin-top: 1.2rem; list-style: none; }
+  .list li { position: relative; height: 5.3rem; margin-bottom: 0.3rem; }
+  .list .cover { position: absolute; left: 0; top: 0.15rem; width: 5rem; height: 5rem; }
+  .list .text { position: absolute; left: 6.4rem; right: 15rem; top: 0.1rem; }
+  .list .t { font-size: 2.1rem; font-weight: 700; }
+  .list .a { color: #a79bd0; font-size: 1.7rem; }
+  .list .who { position: absolute; right: 0; top: 1.4rem; width: 14rem; margin: 0; font-size: 1.7rem; text-align: right; }
+  .list .empty { height: auto; color: #a79bd0; font-size: 2.1rem; }
+
+  /* With Party off: across the right-hand side. */
+  .closed { position: absolute; left: 50rem; top: 24rem; width: 66rem; text-align: center; }
+  .closed-title { font-size: 4.4rem; font-weight: 800; }
+  .closed-text { margin-top: 1rem; font-size: 2.6rem; }
+
+  /* Only until an address is given; and while Party Mode can't be reached. */
+  .setup { position: fixed; top: 0; right: 0; bottom: 0; left: 0; padding: 16px; background: #170f2b; text-align: center; }
+  .setup form { margin: 40vh auto 0; max-width: 36rem; }
+  .setup input { width: 70%; padding: 0.6rem; font: inherit; border-radius: 8px; border: 1px solid #3a2a63; }
+  .setup button { margin-left: 8px; padding: 0.6rem 1.2rem; font: inherit; font-weight: 650; border: 0; border-radius: 999px; background: #ffc24b; color: #2a1c00; cursor: pointer; }
+  .offline { position: fixed; bottom: 0.5rem; left: 0.75rem; font-size: 14px; color: #a79bd0; }
+</style>
+</head>
+<body>
+<div class="setup" id="setup" hidden>
+  <form id="setup-form">
+    <input id="hub" type="url" placeholder="http://192.0.2.10:8338" aria-label="Your Party Mode address" required>
+    <button>Show</button>
+  </form>
+</div>
+
+<main id="stage" class="stage">
+  <section class="join">
+    <h1 id="party-name" class="party-name">Party</h1>
+    <div id="join-open">
+      <img id="qr" class="qr" alt="QR code for the guest page">
+      <p id="join-copy" class="join-copy">Scan to add a track</p>
+    </div>
+    <!-- With Party off: the playlist's code, when the host offers it as one. -->
+    <div id="playlist-qr-offer" hidden>
+      <img id="playlist-qr" class="qr" alt="QR code for the playlist">
+      <p class="join-copy">Scan to download the playlist</p>
+    </div>
+  </section>
+
+  <section id="current" class="current">
+    <img id="current-art" class="art current-art" alt="">
+    <div class="current-text">
+      <p id="current-label" class="label">Playing now</p>
+      <h2 id="current-title" class="current-title line">Nothing playing</h2>
+      <p id="current-artist" class="current-artist line muted"></p>
+      <p id="current-album" class="current-album line muted"></p>
+      <p id="current-who" class="who line" hidden></p>
+      <p id="current-note" class="note line muted" hidden>Waiting for the host to start the queue.</p>
+    </div>
+  </section>
+
+  <section id="upnext" class="upnext">
+    <h2 class="label upnext-title"><span>Up next</span><span id="upnext-count" class="upnext-count" hidden></span></h2>
+    <ol id="list" class="list"></ol>
+  </section>
+
+  <!-- With Party off, in place of what's playing and Up next. -->
+  <section id="closed" class="closed" hidden>
+    <h2 class="closed-title">Requests are closed</h2>
+    <p class="closed-text muted">Thanks for all the tracks.</p>
+  </section>
+</main>
+<p class="offline" id="offline" hidden></p>
+
+<script>
+(function () {
+  'use strict';
+  var ROWS = 6;
+  var hub = null; // "http://192.0.2.10:8338"
+
+  function el(id) {
+    return document.getElementById(id);
+  }
+  function setText(id, text) {
+    el(id).textContent = text || '';
+  }
+
+  // The 1920 by 1080 design (120 by 67.5 rem) as large as the window allows,
+  // centred: the root font size scales every size on the page.
+  function fit() {
+    var width = window.innerWidth || document.documentElement.clientWidth;
+    var height = window.innerHeight || document.documentElement.clientHeight;
+    var rem = Math.min(width / 120, height / 67.5);
+    document.documentElement.style.fontSize = rem + 'px';
+    var stage = el('stage');
+    stage.style.left = Math.floor((width - 120 * rem) / 2) + 'px';
+    stage.style.top = Math.floor((height - 67.5 * rem) / 2) + 'px';
+  }
+  fit();
+  window.addEventListener('resize', fit);
+
+  // ------------------------------------------------------------ the words
+  // The built-in Hub's English. /embed/ gives kinds and reasons; the page words them.
+  var hostName = null;
+  var EMPTY = {
+    none: 'Nothing lined up.',
+    add: 'Nothing lined up. Add a track.',
+    add_radio: 'Nothing lined up. Add a track, or leave it to Roon Radio.',
+    radio: "Roon Radio picks what's next."
+  };
+  // In Up next: the name alone; beside the playing track: "Requested by …".
+  function credit(c, long) {
+    if (c.kind === 'radio') return 'Roon Radio';
+    if (c.kind === 'host') return c.name || hostName || 'Host';
+    var name = c.name || 'Anon';
+    return long ? 'Requested by ' + name : name;
+  }
+  function creditClass(c) {
+    var kind = c.kind === 'guest' ? (c.how === 'next' ? 'next' : '') : c.kind;
+    return kind ? 'who ' + kind : 'who';
+  }
+  function cover(path, size) {
+    return hub + path + '?size=' + size;
+  }
+
+  // --------------------------------------------------------------- status
+  var party = null;
+  function showStatus(s) {
+    hostName = s.host_name;
+    var name = s.party_name || 'Party';
+    setText('party-name', name);
+    document.title = name + ' Hub';
+    var over = s.party === 'off';
+    var showQr = over && s.playlist === 'qr';
+    el('join-open').hidden = over;
+    el('playlist-qr-offer').hidden = !showQr;
+    el('current').hidden = over;
+    el('upnext').hidden = over;
+    el('closed').hidden = !over;
+    setText('join-copy', s.party === 'paused' ? 'Requests are paused for a moment.' : 'Scan to add a track');
+    // Loaded again with each change: a new party has a new code.
+    if (s.party !== party) {
+      party = s.party;
+      if (over) {
+        if (showQr) el('playlist-qr').src = hub + '/embed/playlist-qr.svg?t=' + new Date().getTime();
+      } else {
+        el('qr').src = hub + '/embed/join-qr.svg?t=' + new Date().getTime();
+      }
+    }
+  }
+
+  // ---------------------------------------------------------- playing now
+  var shownArt = null;
+  function showNowPlaying(data) {
+    var playing = data.track;
+    setText('current-label', !playing || playing.state !== 'playing' ? 'Paused' : playing.station ? 'Radio station' : 'Playing now');
+    setText('current-title', playing ? playing.title : 'Nothing playing');
+    setText('current-artist', playing && playing.artist);
+    setText('current-album', playing && playing.album);
+    var who = el('current-who');
+    who.hidden = !(playing && playing.credit);
+    who.className = (who.hidden ? 'who' : creditClass(playing.credit)) + ' line';
+    who.textContent = who.hidden ? '' : credit(playing.credit, true);
+    // Requests wait while a radio station plays; paused, the caption says so already.
+    el('current-note').hidden = !(playing && playing.station) || party === 'paused';
+    var art = playing && playing.art;
+    if (art !== shownArt) {
+      if (art) el('current-art').src = cover(art, 400);
+      else el('current-art').removeAttribute('src');
+      shownArt = art;
+    }
+  }
+
+  // -------------------------------------------------------------- up next
+  function row(track) {
+    var li = document.createElement('li');
+    var art = document.createElement('img');
+    art.className = 'art cover';
+    art.alt = '';
+    if (track.art) art.src = cover(track.art, 120);
+    var text = document.createElement('div');
+    text.className = 'text';
+    var title = document.createElement('div');
+    title.className = 't';
+    title.textContent = track.title; // textContent: titles and names are never HTML
+    var artist = document.createElement('div');
+    artist.className = 'a';
+    artist.textContent = track.artist;
+    text.appendChild(title);
+    text.appendChild(artist);
+    li.appendChild(art);
+    li.appendChild(text);
+    if (track.credit) {
+      var who = document.createElement('p');
+      who.className = creditClass(track.credit) + ' line';
+      who.textContent = credit(track.credit, false);
+      li.appendChild(who);
+    }
+    return li;
+  }
+
+  function showUpNext(data) {
+    var list = el('list');
+    while (list.firstChild) list.removeChild(list.firstChild);
+    var tracks = data.tracks || [];
+    if (!tracks.length) {
+      var empty = document.createElement('li');
+      empty.className = 'empty';
+      empty.textContent = EMPTY[data.empty] || EMPTY.none;
+      list.appendChild(empty);
+    }
+    for (var i = 0; i < tracks.length && i < ROWS; i += 1) list.appendChild(row(tracks[i]));
+    // How many are queued, when more than show.
+    var count = el('upnext-count');
+    count.hidden = tracks.length <= ROWS;
+    count.textContent = count.hidden ? '' : tracks.length + ' tracks';
+  }
+
+  // ------------------------------------------------- keeping up to date
+  var VIEWS = { status: showStatus, 'now-playing': showNowPlaying, 'up-next': showUpNext };
+
+  function get(view) {
+    var request = new XMLHttpRequest();
+    request.open('GET', hub + '/embed/' + view + '.json');
+    request.onreadystatechange = function () {
+      if (request.readyState !== 4) return;
+      if (request.status !== 200) {
+        setText('offline', "Can't reach Party Mode at " + hub);
+        el('offline').hidden = false;
+        return;
+      }
+      el('offline').hidden = true;
+      try {
+        VIEWS[view](JSON.parse(request.responseText));
+      } catch (err) {
+        /* the next update tries again */
+      }
+    };
+    request.send();
+  }
+  function pollOnce() {
+    for (var view in VIEWS) get(view);
+  }
+
+  var poller = null;
+  function follow() {
+    pollOnce();
+    if (!window.EventSource) {
+      setInterval(pollOnce, 10000);
+      return;
+    }
+    var source = new EventSource(hub + '/embed/events');
+    Object.keys(VIEWS).forEach(function (view) {
+      source.addEventListener(view, function (event) {
+        VIEWS[view](JSON.parse(event.data));
+      });
+    });
+    source.onopen = function () {
+      el('offline').hidden = true;
+      clearInterval(poller);
+      poller = null;
+    };
+    // EventSource reconnects by itself; meanwhile, fetch every 10 seconds.
+    source.onerror = function () {
+      if (!poller) poller = setInterval(pollOnce, 10000);
+    };
+  }
+
+  // The address's scheme, host and port: "http://192.0.2.10:8338".
+  function origin(address) {
+    var match = /^(https?:\/\/[^\/?#\s]+)/i.exec(String(address).trim());
+    return match ? match[1] : null;
+  }
+  function start(address) {
+    hub = origin(address);
+    if (!hub) return false;
+    el('setup').hidden = true;
+    follow();
+    return true;
+  }
+  el('setup-form').addEventListener('submit', function (event) {
+    event.preventDefault();
+    var address = el('hub').value;
+    if (window.history && history.replaceState) {
+      history.replaceState(null, '', location.pathname + '?hub=' + encodeURIComponent(address.trim()));
+    }
+    start(address);
+  });
+  var match = /[?&]hub=([^&#]*)/.exec(location.search);
+  var given = match ? decodeURIComponent(match[1].replace(/\+/g, ' ')) : HUB;
+  if (given) el('hub').value = given;
+  if (!given || !start(given)) el('setup').hidden = false;
+})();
+</script>
+</body>
+</html>
