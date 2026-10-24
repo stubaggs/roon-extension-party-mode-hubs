@@ -11,10 +11,13 @@ existing one and make it yours, or start from scratch using
 [Party Mode's topic](https://community.roonlabs.com/t/party-mode-extension/325638) on the
 Roon forum.
 
-The pages need Party Mode 1.4.0 or later and read what it shares under `/embed/` (see
-[EMBED.md](https://github.com/stubaggs/roon-extension-party-mode/blob/beta/EMBED.md)).
-They're read-only: guests still add tracks on their phones. Like the built-in Party Hub,
-they work in older TVs' browsers (such as LG's from 2021) and on older iPads.
+The pages need Party Mode 1.4.0 or later and read what it shares under `/embed/`. They're
+read-only: guests still add tracks on their phones. Like the built-in Party Hub, they work
+in older TVs' browsers (such as LG's from 2021) and on older iPads.
+
+**How the pages get their data:** every address and field Party Mode shares is in
+[EMBED.md](https://github.com/stubaggs/roon-extension-party-mode/blob/beta/EMBED.md), and
+[`example-hub.html`](example-hub.html) shows them all in use.
 
 ## The pages
 
