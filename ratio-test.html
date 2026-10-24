@@ -33,13 +33,23 @@
   Without ?page=, it asks, with a button for the built-in Party Hub and one
   for each page in this folder.
 
-  Keeping this page on a server of your own? Put your addresses in HUB and
-  ROON at the top of the script below, and every page you test gets them
-  without typing (hub= and roon= after the "?" still win).
+  Keeping this page on a server of your own? Put your Party Mode address and
+  your Roon Core's in HUB and ROON, in "Your addresses" just below, and every
+  page you test gets them without typing (hub= and roon= after the "?" still win).
 -->
 <html lang="en">
 <head>
 <meta charset="utf-8">
+<script>
+  // ---------------------------------------------- Your addresses: fill in
+  // Your Party Mode address: where your Party Hub is, without /PartyHub.
+  // Filled in, this page opens with nothing added to its own address; left
+  // '', it asks for it. ?hub= in this page's address always wins.
+  const HUB = ''; // such as 'http://192.0.2.10:8338'
+  // Your Roon Core's address: the one Roon gives for Roon Display
+  // (Settings → Displays), without /display/. ?roon= always wins.
+  const ROON = ''; // such as 'http://192.0.2.20:9330'
+</script>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Ratio test</title>
 <style>
@@ -67,9 +77,9 @@
 <body>
 <div class="ask" id="ask" hidden>
   <form id="ask-form">
-    <label for="hub">Party Mode's address</label>
+    <label for="hub">Your Party Mode address</label>
     <input id="hub" type="url" placeholder="http://192.0.2.10:8338">
-    <label for="roon">The Roon Core's address (for roon-display-hub.html)</label>
+    <label for="roon">Your Roon Core's address (for roon-display-hub.html)</label>
     <input id="roon" type="url" placeholder="http://192.0.2.20:9330">
     <div class="pages" id="pages"><button type="button" id="built-in">Built-in Party Hub</button></div>
     <label for="page">Or another page: a file in this folder, or a web address</label>
@@ -83,18 +93,13 @@
 <script>
 (function () {
   'use strict';
-  // Your addresses, so you don't have to type them each time: Party Mode's
-  // (as for the built-in Party Hub, without /PartyHub) and the Roon Core's
-  // web address. Leave one '' to type it on the form or after the "?".
-  const HUB = '';   // such as 'http://192.0.2.10:8338'
-  const ROON = '';  // such as 'http://192.0.2.20:9330'
 
   const RATIOS = [
     ['Full', null], ['4:3', [4, 3]], ['16:10', [16, 10]], ['16:9', [16, 9]], ['1.85:1', [37, 20]],
     ['2:1', [2, 1]], ['21:9', [21, 9]], ['2.39:1', [239, 100]], ['32:9', [32, 9]]
   ];
   // The pages in this folder, as buttons on the form.
-  const PAGES = ['party-hub.html', 'simple-hub.html', 'roon-display-hub.html', 'qr-codes.html'];
+  const PAGES = ['party-hub.html', 'roon-display-hub.html', 'example-hub.html', 'simple-hub.html', 'qr-codes.html'];
   const el = (id) => document.getElementById(id);
   const params = new URLSearchParams(location.search);
   if (HUB && !params.has('hub')) params.set('hub', HUB);
@@ -143,7 +148,7 @@
     let hub = null;
     try { hub = new URL('/PartyHub', el('hub').value.trim()); } catch (err) { /* no address yet */ }
     if (hub && (hub.protocol === 'http:' || hub.protocol === 'https:')) go(hub.href);
-    else { say("Enter Party Mode's address first, such as http://192.0.2.10:8338."); el('hub').focus(); }
+    else { say("Enter your Party Mode address first, such as http://192.0.2.10:8338."); el('hub').focus(); }
   });
   for (const name of PAGES) {
     const button = document.createElement('button');

@@ -26,13 +26,13 @@
   to join, Up next and who asked for each track. In English only.
 
   Open this file in a browser (from any web server, or from disk) with the
-  Party Hub's address and the Roon Core's added:
+  your Party Mode address and your Roon Core's added:
   roon-display-hub.html?hub=http://192.0.2.10:8338&roon=http://192.0.2.20:9330
 
-  Keeping it on a server of your own? Put the addresses in HUB and ROON at
-  the top of the script below, and the page needs nothing after the "?".
+  Keeping it on a server of your own? Put your addresses in HUB and ROON, in
+  "Your addresses" just below, and the page needs nothing after the "?".
 
-  The Core's address is the one Roon gives for Roon Display (Settings →
+  Your Roon Core's address is the one Roon gives for Roon Display (Settings →
   Displays), without /display/; Party Mode doesn't give it out. The first time,
   choose the zone in Roon's page, as on any display: it remembers it in this
   browser. Each browser showing this page appears in Roon's Displays.
@@ -51,6 +51,16 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
+<script>
+  // ---------------------------------------------- Your addresses: fill in
+  // Your Party Mode address: where your Party Hub is, without /PartyHub.
+  // Filled in, this page opens with nothing added to its own address; left
+  // '', it asks for it. ?hub= in this page's address always wins.
+  const HUB = ''; // such as 'http://192.0.2.10:8338'
+  // Your Roon Core's address: the one Roon gives for Roon Display
+  // (Settings → Displays), without /display/. ?roon= always wins.
+  const ROON = ''; // such as 'http://192.0.2.20:9330'
+</script>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Party Hub with Roon Display</title>
 <style>
@@ -207,8 +217,8 @@
 <body>
 <div class="setup" id="setup" hidden>
   <form id="setup-form">
-    <label>Party Hub address <input id="hub" type="url" placeholder="http://192.0.2.10:8338" required></label>
-    <label>Roon Core address <input id="roon" type="url" placeholder="http://192.0.2.20:9330" required></label>
+    <label>Your Party Mode address <input id="hub" type="url" placeholder="http://192.0.2.10:8338" required></label>
+    <label>Your Roon Core's address <input id="roon" type="url" placeholder="http://192.0.2.20:9330" required></label>
     <button>Show</button>
   </form>
 </div>
@@ -260,12 +270,6 @@
 <script>
 (function () {
   'use strict';
-  // Your addresses, so the page needs nothing after the "?": Party Mode's
-  // (as for the built-in Party Hub, without /PartyHub) and the Roon Core's
-  // (as for Roon Display, without /display/). Fill them in when you keep
-  // this page on a server of your own; hub= and roon= after the "?" still win.
-  const HUB = '';   // such as 'http://192.0.2.10:8338'
-  const ROON = '';  // such as 'http://192.0.2.20:9330'
   const el = (id) => document.getElementById(id);
   let hub = null; // "http://192.0.2.10:8338"
   let display = null; // Roon's display page: "http://192.0.2.20:9330/display/"

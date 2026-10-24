@@ -25,11 +25,11 @@
   in English only. A starting point for a Party Hub of your own.
 
   Open this file in a browser (from any web server, or from disk) with the
-  Party Hub's address added:
+  your Party Mode address added:
   party-hub.html?hub=http://192.0.2.10:8338
 
-  Keeping it on a server of your own? Put the address in HUB at the top of
-  the script below, and the page needs nothing after the "?".
+  Keeping it on a server of your own? Put your Party Mode address in HUB, in
+  "Your addresses" just below, and the page needs nothing after the "?".
 
   In Firefox, open it from a web server rather than from disk: Firefox moves a
   page from disk's images to https, which Party Mode doesn't serve.
@@ -39,6 +39,13 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
+<script>
+  // ---------------------------------------------- Your addresses: fill in
+  // Your Party Mode address: where your Party Hub is, without /PartyHub.
+  // Filled in, this page opens with nothing added to its own address; left
+  // '', it asks for it. ?hub= in this page's address always wins.
+  const HUB = ''; // such as 'http://192.0.2.10:8338'
+</script>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Party Hub</title>
 <style>
@@ -172,7 +179,7 @@
 <body>
 <div class="setup" id="setup" hidden>
   <form id="setup-form">
-    <input id="hub" type="url" placeholder="http://192.0.2.10:8338" aria-label="Party Hub address" required>
+    <input id="hub" type="url" placeholder="http://192.0.2.10:8338" aria-label="Your Party Mode address" required>
     <button>Show</button>
   </form>
 </div>
@@ -219,10 +226,6 @@
 <script>
 (function () {
   'use strict';
-  // Your Party Mode's address (as for the built-in Party Hub, without
-  // /PartyHub), so the page needs nothing after the "?": fill it in when you
-  // keep this page on a server of your own. hub= after the "?" still wins.
-  const HUB = ''; // such as 'http://192.0.2.10:8338'
   const el = (id) => document.getElementById(id);
   let hub = null; // "http://192.0.2.10:8338"
 

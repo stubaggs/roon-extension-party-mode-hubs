@@ -24,11 +24,11 @@
   A Party Hub of your own: an example of Party Mode's /embed/ addresses.
 
   Open this file in a browser (from disk is fine, or from any web server) and
-  enter the Party Hub's address, or add it to the page's own address:
+  enter your Party Mode address, or add it to the page's own address:
   simple-hub.html?hub=http://192.0.2.10:8338
 
-  Keeping it on a server of your own? Put the address in HUB at the top of
-  the script below, and the page needs nothing after the "?".
+  Keeping it on a server of your own? Put your Party Mode address in HUB, in
+  "Your addresses" just below, and the page needs nothing after the "?".
 
   In Firefox, open it from a web server rather than from disk: Firefox moves a
   page from disk's images to https, which Party Mode doesn't serve.
@@ -41,6 +41,13 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
+<script>
+  // ---------------------------------------------- Your addresses: fill in
+  // Your Party Mode address: where your Party Hub is, without /PartyHub.
+  // Filled in, this page opens with nothing added to its own address; left
+  // '', it asks for it. ?hub= in this page's address always wins.
+  const HUB = ''; // such as 'http://192.0.2.10:8338'
+</script>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>My Party Hub</title>
 <style>
@@ -83,7 +90,7 @@
 </head>
 <body>
 <form id="setup">
-  <input id="hub" type="url" placeholder="http://192.0.2.10:8338" aria-label="Party Hub address" required>
+  <input id="hub" type="url" placeholder="http://192.0.2.10:8338" aria-label="Your Party Mode address" required>
   <button>Show</button>
 </form>
 
@@ -121,10 +128,6 @@
 <p><code id="state">Not connected</code></p>
 
 <script>
-  // Your Party Mode's address (as for the built-in Party Hub, without
-  // /PartyHub), so the page needs nothing after the "?": fill it in when you
-  // keep this page on a server of your own. hub= after the "?" still wins.
-  const HUB = ''; // such as 'http://192.0.2.10:8338'
   const $ = (id) => document.getElementById(id);
   let hub = null;          // e.g. "http://192.0.2.10:8338"
   let source = null;       // the live stream
