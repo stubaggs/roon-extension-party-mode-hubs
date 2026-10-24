@@ -130,16 +130,17 @@
     font-size: clamp(0.8rem, calc(1.2 * var(--w)), 1.15rem); background: rgba(201, 182, 255, 0.18); color: var(--lavender); }
 
   .upnext { grid-column: 2; align-self: stretch; min-height: 0; display: flex; flex-direction: column; }
-  .upnext-title { margin: 0 0 0.6rem; color: var(--amber); font-size: clamp(0.9rem, calc(1.4 * var(--w)), 1.3rem); font-weight: 600; }
+  .upnext-title { display: flex; justify-content: space-between; align-items: baseline; margin: 0 0 0.6rem; color: var(--amber); font-size: clamp(0.9rem, calc(1.4 * var(--w)), 1.3rem); font-weight: 600; }
+  /* How many tracks are queued, when more than fit: across from the heading. */
+  .upnext-count { margin-inline-start: 1rem; color: var(--muted); font-weight: 400; white-space: nowrap; }
   .list { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--edge); min-width: 0; flex: 1 1 auto; min-height: 0; overflow: hidden; }
   .list .empty { display: flex; align-items: center; justify-content: center; height: 100%; border-bottom: 0; text-align: center;
     font-size: clamp(1rem, calc(1.8 * var(--w)), 1.6rem); }
-  .list li { display: grid; grid-template-columns: 2.6rem auto 1fr; gap: 1rem; align-items: center;
+  .list li { display: grid; grid-template-columns: auto 1fr; gap: 1rem; align-items: center;
     padding: clamp(0.4rem, 1.1 * var(--vh), 0.9rem) 0; border-bottom: 1px solid rgba(58, 42, 99, 0.5); font-size: clamp(1rem, calc(1.6 * var(--w)), 1.5rem); min-width: 0; }
   /* Only whole tracks (see the script): a screen can't scroll. */
   .list li[hidden] { display: none; }
   .list .cover { width: 2.4em; height: 2.4em; }
-  .list .n { color: var(--lavender); font-variant-numeric: tabular-nums; font-size: 0.9em; }
   .list > li > div { min-width: 0; }
   .list .t { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .list .a { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--muted); font-size: 0.78em; }
@@ -192,8 +193,6 @@
   .stage.framed .stack { grid-column: 2; grid-row: 1 / -1; align-self: center; }
   .stage.framed .upnext { grid-column: 1; grid-row: 2; }
   /* No numbers: with only a few tracks under the code, they're easy to count. */
-  .stage.framed .list li { grid-template-columns: auto 1fr; }
-  .stage.framed .list .n { display: none; }
   /* 16:15, so Roon's picture is sharp (it picks a 4:3 artist picture for that shape): as
      tall as the screen leaves, less the margins and the line above it, or as wide as
      leaves the code a usable column. The height is worked out from the width. */
@@ -261,7 +260,7 @@
   </section>
 
   <section class="upnext">
-    <h2 class="upnext-title">Up next</h2>
+    <h2 class="upnext-title"><span>Up next</span><span class="upnext-count" id="upnext-count" hidden></span></h2>
     <ol class="list" id="list"></ol>
   </section>
 </main>
@@ -432,12 +431,9 @@
       empty.textContent = EMPTY[data.empty] || EMPTY.none;
       list.appendChild(empty);
     }
-    data.tracks.forEach((track, index) => {
+    queued = data.tracks.length;
+    data.tracks.forEach((track) => {
       const li = document.createElement('li');
-      const n = document.createElement('span');
-      n.className = 'n';
-      n.textContent = String(index + 1);
-      n.setAttribute('aria-hidden', 'true');
       const art = document.createElement('img');
       art.className = 'art cover';
       art.alt = '';
@@ -457,7 +453,7 @@
         who.textContent = credit(track.credit, false);
         wrap.appendChild(who);
       }
-      li.append(n, art, wrap);
+      li.append(art, wrap);
       list.appendChild(li);
     });
     fitRows();
@@ -467,15 +463,24 @@
   // scrolls the page instead, and shows them all.
   // The room under the last whole one is shared above and below the
   // right-hand side (--shift), so it sits in the middle, as the code does.
+  // How many tracks are queued: said across from Up next when more than fit.
+  let queued = 0;
+  function showCount(shown) {
+    const count = el('upnext-count');
+    count.hidden = queued <= shown;
+    count.textContent = count.hidden ? '' : queued + (queued === 1 ? ' track' : ' tracks');
+  }
   function fitRows() {
     const rows = [...el('list').children];
     const stage = document.querySelector('.stage');
     for (const row of rows) row.hidden = false;
     stage.style.setProperty('--shift', '0px');
+    showCount(rows.length);
     if (!wide.matches) return;
     const bottom = el('list').getBoundingClientRect().bottom;
     for (const row of rows) row.hidden = row.getBoundingClientRect().bottom > bottom + 0.5;
     const shown = rows.filter((row) => !row.hidden);
+    showCount(shown.length);
     if (shown.length < rows.length && shown.length) {
       const left = bottom - shown[shown.length - 1].getBoundingClientRect().bottom;
       stage.style.setProperty('--shift', Math.floor(left / 2) + 'px');
