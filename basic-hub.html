@@ -68,7 +68,10 @@
 
   /* The code to join, on the left. */
   .join { position: absolute; left: 4rem; top: 3.5rem; width: 40rem; height: 60.5rem; text-align: center; }
+  /* Two lines; a longer name gets smaller to fit, down to three lines (the script), and
+     only then ends with an ellipsis (where the browser can). */
   .party-name { height: 8.4rem; overflow: hidden; font-size: 3.4rem; font-weight: 800; line-height: 1.2; word-wrap: break-word; }
+  .party-name.clamped { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3; }
   .qr { display: block; width: 40rem; height: 40rem; margin-top: 2.5rem; padding: 1.6rem; background: #fff; border-radius: 1.4rem; }
   .join-copy { margin-top: 2rem; color: #ffc24b; font-size: 2.6rem; font-weight: 700; }
 
@@ -186,6 +189,20 @@
   fit();
   window.addEventListener('resize', fit);
 
+  // A long party name gets smaller until it fits its box (two lines at full
+  // size, three at the smallest); longer still, it ends with an ellipsis.
+  var NAME_SIZES = [3.4, 3, 2.6, 2.3];
+  function fitName() {
+    var name = el('party-name');
+    name.className = 'party-name';
+    for (var i = 0; i < NAME_SIZES.length; i += 1) {
+      name.style.fontSize = NAME_SIZES[i] + 'rem';
+      if (name.scrollHeight <= name.clientHeight + 1) return;
+    }
+    name.className = 'party-name clamped';
+  }
+  window.addEventListener('resize', fitName);
+
   // ------------------------------------------------------------ the words
   // The built-in Hub's English. /embed/ gives kinds and reasons; the page words them.
   var hostName = null;
@@ -216,6 +233,7 @@
     hostName = s.host_name;
     var name = s.party_name || 'Party';
     setText('party-name', name);
+    fitName();
     document.title = name + ' Hub';
     var over = s.party === 'off';
     var showQr = over && s.playlist === 'qr';
