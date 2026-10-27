@@ -46,8 +46,10 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Example Hub</title>
 <style>
-  /* Just enough to read it. */
-  body { font: 16px/1.4 system-ui, sans-serif; margin: 16px; max-width: 900px; }
+  /* Just enough to read it. Colours set, so a browser that darkens pages
+     doesn't leave the text black on black. */
+  :root { color-scheme: light; }
+  body { font: 16px/1.4 system-ui, sans-serif; margin: 16px; max-width: 900px; background: #fff; color: #111; }
   section { border: 1px solid #999; padding: 8px 12px; margin: 0 0 12px; }
   h2 { font-size: 1.1em; margin: 0 0 6px; }
   code, pre { font-size: 0.85em; }
