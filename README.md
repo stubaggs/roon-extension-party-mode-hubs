@@ -1,6 +1,6 @@
 # Party Hubs for Party Mode
 
-Welcome, Roon Tinkerers!
+Welcome, Roon Tinkerers.
 
 Your own Party Hub for [Party Mode](https://github.com/stubaggs/roon-extension-party-mode),
 the Roon extension that lets guests request music from their phones. Each page here shows
