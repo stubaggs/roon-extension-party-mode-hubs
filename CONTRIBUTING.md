@@ -35,6 +35,3 @@ So that anyone can pick up a Hub and run it at their party, every Hub:
 - Check your Hub in more than one browser, and on the screen you made it for. To see it
   at other screen shapes, put it beside `ratio-test.html` and open
   `ratio-test.html?page=<name>.html&hub=…`.
-
-Every pull request is read before it's merged, and a Hub that doesn't follow a guideline
-is sent back with what to change.
