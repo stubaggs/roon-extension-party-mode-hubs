@@ -31,7 +31,7 @@ So that anyone can pick up a Hub and run it at their party, every Hub:
 - Follow `/embed/events` (a live stream) rather than fetching the files many times a
   second: Party Mode limits the requests each device can make. EMBED.md's "Building a
   page" has the rest.
-- Say **tracks**, not songs: a track may be a poem or a speech.
+- Consider saying **tracks**, not songs: a track may be a poem or a speech.
 - Use `192.0.2.10` (an address kept for examples) in any example address, never your own.
 - Check your Hub in more than one browser, and on the screen you made it for. To see it
   at other screen shapes, put it beside `ratio-test.html` and open
