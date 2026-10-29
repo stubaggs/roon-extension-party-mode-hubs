@@ -44,7 +44,7 @@ points.
 On a web server of your own (for example, your existing NAS), put your Party Mode address
 in `HUB` (and your Roon Core's in `ROON`, for `roon-display-hub.html`), in the "Your
 addresses" block near the top of the page, and it needs nothing added. `hub=` and `roon=`
-in the page's address still win.
+in the page's address will override.
 
 Open pages over `http`, not from an `https` site such as GitHub Pages: Party Mode speaks
 plain `http`, and browsers won't let an `https` page reach it. In Firefox, use a web
